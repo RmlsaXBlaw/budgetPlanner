@@ -1,0 +1,31 @@
+household
+- household_id (PK)
+- name
+
+user
+- user_id (PK)
+- household_id (FK)
+- name 
+- password
+
+category
+- category_id (PK)
+- houselhold_id (FK)
+- name 
+- type (income, expensens)
+
+transactions 
+- transaction_id (PK)
+- user_id (FK)
+- category_id (FK)
+- amount 
+- date
+- desc
+
+budget
+- budget_id (PK)
+- household_id (FK)
+- category_id (FK)
+- month
+- year
+- amount

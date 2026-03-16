@@ -1,31 +1,45 @@
 household
 - household_id (PK)
-- name
+- name (NOT NULL)
 
 user
 - user_id (PK)
-- household_id (FK)
-- name 
-- password
+- household_id (FK, Nullable)
+- status (status of household (member | admin) 
+- name (NOT NULL)
+- password (NOT NULL)
 
 category
 - category_id (PK)
-- houselhold_id (FK)
-- name 
+- houselhold_id (FK, Nullable)
+- user_id (FK, Nullable)
+- name (NOT NULL)
 - type (income, expensens)
 
 transactions 
 - transaction_id (PK)
+- household_id (FK, Nullable) || NULL = transakcja własna 
 - user_id (FK)
 - category_id (FK)
-- amount 
-- date
-- desc
+- amount (NOT NULL)
+- date (NOT NULL)
+- desc 
 
 budget
 - budget_id (PK)
-- household_id (FK)
+- household_id (FK, Nullable) || NULL = budżet prywatny
+- user_id (FK, Nullable) || NULL = budżet dla household
 - category_id (FK)
-- month
-- year
-- amount
+- month (NOT NULL)
+- year (NOT NULL)
+- amount (NOT NULL)
+
+
+
+CHECK 
+- W user jeżeli household jest NULL to status też powinien być NULL (nie ma householdu więc nie ma w nim roli)
+- W user jeżeli household jest przypisany to musi też być przypisany status
+- W category jeżeli household nie jest NULL to user musi być NULL 
+- W category jeżeli user nie jest NULL to household musi być NULL
+- W budget jeżeli household nie jest NULL to user musi być NULL
+- W budget jeżeli user nie jest NULL to household musi być NULL

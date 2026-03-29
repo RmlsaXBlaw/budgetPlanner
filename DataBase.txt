@@ -1,3 +1,9 @@
+household_users
+- household_users_id (PK)
+- household_id (FK)
+- user_id (FK)
+
+
 household
 - household_id (PK)
 - name (NOT NULL)
@@ -5,7 +11,7 @@ household
 user
 - user_id (PK)
 - household_id (FK, Nullable)
-- status (status of household (member | admin) 
+- status (status of household (member | admin) (Nullable)
 - name (NOT NULL)
 - password (NOT NULL)
 
@@ -14,7 +20,7 @@ category
 - houselhold_id (FK, Nullable)
 - user_id (FK, Nullable)
 - name (NOT NULL)
-- type (income, expensens)
+- type (income, expensens) (NOT NULL)
 
 transactions 
 - transaction_id (PK)
@@ -33,6 +39,7 @@ budget
 - month (NOT NULL)
 - year (NOT NULL)
 - amount (NOT NULL)
+UNIQUE(household_id, user_id, category_id, month, year)
 
 
 

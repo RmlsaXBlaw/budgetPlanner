@@ -1,0 +1,91 @@
+body{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.form{
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-direction: column;
+    border: 2.5px solid black;
+    padding: 40px;
+    box-shadow: 7px 6px 0px black;
+    width: 500px;
+    height: 450px;
+}
+
+.lineup{
+    width: 100%;
+    border-top: 1px solid black;
+    margin-top: 0PX;
+}
+
+.line{
+    width: 100%;
+    border-top: 1px solid black;
+}
+
+.login{
+    font-size: 42px;
+    padding: 0px;
+    margin: 0px;
+    letter-spacing: 3.5px;
+    align-self: center;
+}
+
+.input{
+    height: 40px;
+    border: none;
+    border-bottom: 2px solid black;
+    font-size: 20px;
+}
+
+.input:focus{
+    outline: none;
+    border-bottom: 2px solid rgb(192, 188, 188);
+}
+
+.submit{
+    transition: all 0.3s ease-in-out;
+    border-radius: 0px;
+    background-color: black;
+    color: white;
+    height: 60px;
+    font-size: 25px;
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: 700;
+}
+
+.submit:hover{
+    transition: all 0.3s ease-in-out;
+    border: 5px solid black;
+    background-color: white;
+    color: black;
+}
+
+.switch{
+    align-self: center;
+    font-weight: 200;
+    font-size: 20px;
+    margin: 0px;
+    border-bottom: 1px solid transparent;
+    
+}
+
+.switch:hover{
+    cursor: pointer;
+    border-bottom: 1px solid black;
+}
+
+.label{
+    font-weight: 1000;
+    font-size: 18px;
+    letter-spacing: 1px;
+}
+
+
+
+

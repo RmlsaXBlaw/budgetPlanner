@@ -209,7 +209,7 @@ def executive_summary(user_id):
     conn = get_connection()
     cursor = conn.cursor()
 
-    # total budget (wszystkie budżety)
+    # total budget
     cursor.execute("""
         SELECT COALESCE(SUM(Amount), 0)
         FROM Budget
@@ -217,7 +217,7 @@ def executive_summary(user_id):
     """, (user_id,))
     total_budget = cursor.fetchone()[0]
 
-    # total spent (wszystkie wydatki)
+    # total spent
     cursor.execute("""
         SELECT COALESCE(SUM(t.Amount), 0)
         FROM Transactions t

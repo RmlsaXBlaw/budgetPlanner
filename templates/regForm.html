@@ -3,23 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
-    <link rel="stylesheet" href="../static/loginStyle.css" type="text/css" />
+    <title>Registration</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='loginStyle.css') }}" type="text/css" />
+    <style>
+        .switch-link { text-decoration: none; color: inherit; align-self: center; }
+    </style>
 </head>
 <body>
     <form action="/registration" method="POST" class="form">
         <h3 class="login">REGISTRATION</h3>
         <hr class="lineup">
+        
         <label for="username" class="label">USERNAME</label>
         <input type="text" name="username" class="input" required>
         <br><br>
         <label for="password" class="label">PASSWORD</label>
         <input type="password" name="password" class="input" required>
         <br><br>
-        <input type="submit" value="SIGN IN" class="submit">
+        
+        <input type="submit" value="REGISTER" class="submit">
         <hr class="line">
-        <h4 class="switch">RETURN TO AUTHENTICATION</h4>
+        
+        <a href="/login" class="switch-link">
+            <h4 class="switch">RETURN TO AUTHENTICATION</h4>
+        </a>
     </form>
-    
 </body>
 </html>

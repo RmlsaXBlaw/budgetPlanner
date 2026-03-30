@@ -4,12 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
-    <link rel="stylesheet" href="../static/loginStyle.css" type="text/css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='loginStyle.css') }}" type="text/css" />
+    <style>
+        /* Ensures the anchor tag doesn't break your flexbox centering */
+        .switch-link { text-decoration: none; color: inherit; align-self: center; }
+        .error-msg { color: #cc0000; font-family: 'Courier New', Courier, monospace; font-size: 14px; font-weight: bold; text-align: center; margin-top: -15px; }
+    </style>
 </head>
 <body>
     <form action="/login" method="POST" class="form">
         <h3 class="login">AUTHENTICATION</h3>
         <hr class="lineup">
+        
+        {% if error %}
+            <p class="error-msg">{{ error }}</p>
+        {% endif %}
+
         <label for="username" class="label">USERNAME</label>
         <input type="text" name="username" class="input" required>
         <br><br>
@@ -18,8 +28,10 @@
         <br><br>
         <input type="submit" value="SIGN IN" class="submit">
         <hr class="line">
-        <h4 class="switch">SWITCH TO REGISTRATION</h4>
+        
+        <a href="/registration" class="switch-link">
+            <h4 class="switch">SWITCH TO REGISTRATION</h4>
+        </a>
     </form>
-    
 </body>
 </html>

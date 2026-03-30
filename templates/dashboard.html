@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Budget Planner - Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboardStyle.css') }}" type="text/css" />
+</head>
+<body>
+    <div class="layout-wrapper">
+        <header class="top-header">
+            <div class="header-left">
+                <h1 class="main-title">BUDGET PLANNER</h1>
+                <h2 class="sub-title">CURRICULUM VITAE STYLE ADMINISTRATION</h2>
+            </div>
+            <div class="header-right">
+                <div class="user-info">
+                    <span class="user-name">{{ current_user.username | default('J.SMITH', true) | upper }}</span>
+                    <span class="user-role">{{ current_user.role | default('ADMIN', true) | upper }}</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="main-container">
+            <aside class="sidebar">
+                <div class="nav-section">
+                    <h3 class="section-heading">NAVIGATION</h3>
+                    <hr class="thick-line">
+                    <ul class="nav-links">
+                        <li><a href="/dashboard">⌂ DASHBOARD</a></li>
+                        <li><a href="/add_transaction">⊕ ADD TRANSACTION</a></li>
+                        <li><a href="/add_budget">◫ ADD BUDGET</a></li>
+                        <li><a href="/admin">👤 HOUSEHOLD ADMIN</a></li>
+                    </ul>
+                </div>
+                <div class="nav-footer">
+                    <a href="/logout" class="sign-out">↪ SIGN OUT</a>
+                </div>
+            </aside>
+
+            <main class="content">
+                
+                <section class="dashboard-section">
+                    <h3 class="section-heading">EXECUTIVE SUMMARY</h3>
+                    <hr class="thick-line">
+                    <div class="summary-cards">
+                        <div class="card">
+                            <span class="card-label">TOTAL BUDGET</span>
+                            <hr class="thin-line">
+                            <span class="card-value">${{ "%.2f"|format(total_budget | default(1850.00)) }}</span>
+                        </div>
+                        <div class="card">
+                            <span class="card-label">TOTAL SPENT</span>
+                            <hr class="thin-line">
+                            <span class="card-value">${{ "%.2f"|format(total_spent | default(1400.00)) }}</span>
+                        </div>
+                        <div class="card inverted">
+                            <span class="card-label">REMAINING</span>
+                            <hr class="thin-line border-white">
+                            <span class="card-value">${{ "%.2f"|format(total_remaining | default(450.00)) }}</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="dashboard-section">
+                    <h3 class="section-heading">EXPENDITURE ANALYSIS</h3>
+                    <hr class="thick-line">
+                    <div class="chart-container">
+                        <div class="y-axis">
+                            <span>1200 -</span>
+                            <span>900 -</span>
+                            <span>600 -</span>
+                            <span>300 -</span>
+                            <span>0 -</span>
+                        </div>
+                        <div class="bars-area">
+                            <div class="bar-group">
+                                <div class="bar" style="height: 15%;"></div>
+                                <span class="bar-label">Groceries</span>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar" style="height: 100%;"></div>
+                                <span class="bar-label">Rent</span>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar" style="height: 2%;"></div>
+                                <span class="bar-label">Coffee</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="dashboard-section">
+                    <h3 class="section-heading">DETAILED BUDGETS</h3>
+                    <hr class="thick-line">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>CATEGORY</th>
+                                <th>SCOPE</th>
+                                <th>BUDGET</th>
+                                <th>SPENT</th>
+                                <th>REMAINING</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for budget in detailed_budgets %}
+                            <tr>
+                                <td>{{ budget.category_name }}</td>
+                                <td>{{ budget.scope | upper }}</td>
+                                <td>${{ "%.2f"|format(budget.amount) }}</td>
+                                <td>${{ "%.2f"|format(budget.spent) }}</td>
+                                <td><strong>${{ "%.2f"|format(budget.amount - budget.spent) }}</strong></td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td>Groceries</td><td>HOUSEHOLD</td><td>$600.00</td><td>$195.50</td><td><strong>$404.50</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Rent</td><td>HOUSEHOLD</td><td>$1200.00</td><td>$1200.00</td><td><strong>$0.00</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Coffee</td><td>INDIVIDUAL</td><td>$50.00</td><td>$4.50</td><td><strong>$45.50</strong></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </section>
+
+                <section class="dashboard-section">
+                    <h3 class="section-heading">DATABASE EXPLORER</h3>
+                    <hr class="thick-line">
+                    <div class="explorer-container">
+                        <form action="/dashboard" method="GET" class="filter-form">
+                            <div class="filter-group">
+                                <label for="table_view">DATA VIEW</label>
+                                <select name="table_view" class="cv-input">
+                                    <option value="transactions">Transactions</option>
+                                    <option value="budgets">Budgets vs Actuals</option>
+                                    <option value="users">Household Members</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="start_date">START DATE</label>
+                                <input type="date" name="start_date" class="cv-input">
+                            </div>
+                            <div class="filter-group">
+                                <label for="end_date">END DATE</label>
+                                <input type="date" name="end_date" class="cv-input">
+                            </div>
+                            <button type="submit" class="cv-submit">RUN QUERY</button>
+                        </form>
+                    </div>
+                </section>
+
+            </main>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,320 @@
+/* Color Palette & Base settings based on CV aesthetic */
+:root {
+    --black: #000000;
+    --white: #ffffff;
+    --grey-light: #f4f4f4;
+    --grey-bar: #9ca3af;
+    --border-thick: 2.5px solid var(--black);
+    --border-thin: 1px solid var(--black);
+    
+    /* Fonts matching CV style */
+    --font-serif: 'Georgia', 'Times New Roman', serif;
+    --font-sans: 'Arial', sans-serif;
+    --font-mono: 'Courier New', Courier, monospace;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--white);
+    color: var(--black);
+    display: flex;
+    justify-content: center;
+    font-family: var(--font-serif);
+}
+
+.layout-wrapper {
+    width: 100%;
+    max-width: 1200px;
+    margin: 20px;
+    border: var(--border-thick);
+    box-shadow: 7px 6px 0px black; /* Matching your login style */
+}
+
+/* --- HEADER --- */
+.top-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 30px;
+    border-bottom: var(--border-thick);
+}
+
+.main-title {
+    font-size: 36px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    margin: 0;
+}
+
+.sub-title {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: #555;
+    letter-spacing: 1.5px;
+    margin: 5px 0 0 0;
+    font-weight: normal;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+}
+
+.user-info {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: bold;
+    display: flex;
+    flex-direction: column;
+    text-align: right;
+    border-left: 1px solid black;
+    padding-left: 15px;
+}
+
+/* --- MAIN LAYOUT (Grid) --- */
+.main-container {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    min-height: 80vh;
+}
+
+/* --- SIDEBAR --- */
+.sidebar {
+    border-right: var(--border-thick);
+    padding: 30px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.section-heading {
+    font-size: 18px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    margin: 0 0 10px 0;
+}
+
+.thick-line {
+    border-top: var(--border-thick);
+    margin-bottom: 20px;
+}
+
+.thin-line {
+    border-top: var(--border-thin);
+    margin: 10px 0;
+}
+
+.border-white {
+    border-color: var(--white);
+}
+
+.nav-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.nav-links li {
+    margin-bottom: 20px;
+}
+
+.nav-links a, .sign-out {
+    font-family: var(--font-sans);
+    text-decoration: none;
+    color: var(--black);
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    transition: all 0.2s ease;
+}
+
+.nav-links a:hover, .sign-out:hover {
+    text-decoration: underline;
+}
+
+/* --- MAIN CONTENT AREA --- */
+.content {
+    padding: 30px 40px;
+}
+
+.dashboard-section {
+    margin-bottom: 50px;
+}
+
+/* --- EXECUTIVE SUMMARY CARDS --- */
+.summary-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.2fr;
+    gap: 20px;
+}
+
+.card {
+    border: var(--border-thin);
+    padding: 15px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+}
+
+.card-label {
+    font-family: var(--font-sans);
+    font-size: 10px;
+    letter-spacing: 1.5px;
+}
+
+.card-value {
+    font-size: 28px;
+    margin-top: 10px;
+}
+
+.card.inverted {
+    background-color: var(--black);
+    color: var(--white);
+    border: 1px solid var(--black);
+}
+
+/* --- EXPENDITURE ANALYSIS CHART --- */
+.chart-container {
+    border: var(--border-thin);
+    height: 250px;
+    padding: 20px;
+    display: flex;
+    align-items: flex-end;
+    position: relative;
+}
+
+.y-axis {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    font-family: var(--font-sans);
+    font-size: 10px;
+    margin-right: 10px;
+    text-align: right;
+    border-right: 1px solid #ccc;
+    padding-right: 5px;
+}
+
+.bars-area {
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-end;
+    flex-grow: 1;
+    height: 100%;
+    border-bottom: 1px solid var(--black);
+}
+
+.bar-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    justify-content: flex-end;
+    width: 20%;
+}
+
+.bar {
+    width: 60px;
+    background-color: var(--grey-bar);
+}
+
+.bar-label {
+    font-family: var(--font-serif);
+    font-size: 12px;
+    margin-top: 10px;
+}
+
+/* --- DETAILED BUDGETS TABLE --- */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-serif);
+}
+
+.data-table th, .data-table td {
+    padding: 15px 10px;
+    text-align: left;
+    border-bottom: var(--border-thin);
+}
+
+.data-table th {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    font-weight: bold;
+    border-top: var(--border-thin);
+    border-bottom: var(--border-thick);
+}
+
+.data-table td {
+    font-size: 14px;
+}
+
+.data-table td:nth-child(2) {
+    font-family: var(--font-sans);
+    font-size: 10px;
+    letter-spacing: 1px;
+}
+
+.data-table td:last-child, .data-table th:last-child {
+    text-align: right;
+}
+
+/* --- DATABASE EXPLORER (Query Area) --- */
+.explorer-container {
+    border: var(--border-thin);
+    padding: 20px;
+    background-color: #fafafa;
+}
+
+.filter-form {
+    display: flex;
+    gap: 20px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-group label {
+    font-family: var(--font-sans);
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+}
+
+.cv-input {
+    border: none;
+    border-bottom: 2px solid var(--black);
+    background: transparent;
+    font-family: var(--font-serif);
+    font-size: 16px;
+    padding: 5px 0;
+    outline: none;
+}
+
+.cv-input:focus {
+    border-bottom: 2px solid #888;
+}
+
+.cv-submit {
+    background-color: var(--black);
+    color: var(--white);
+    border: 2px solid var(--black);
+    font-family: var(--font-mono);
+    font-weight: bold;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.cv-submit:hover {
+    background-color: var(--white);
+    color: var(--black);
+}

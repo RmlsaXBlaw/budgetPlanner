@@ -65,28 +65,36 @@
                 <section class="dashboard-section">
                     <h3 class="section-heading">EXPENDITURE ANALYSIS</h3>
                     <hr class="thick-line">
+                    
                     <div class="chart-container">
-                        <div class="y-axis">
-                            <span>1200 -</span>
-                            <span>900 -</span>
-                            <span>600 -</span>
-                            <span>300 -</span>
-                            <span>0 -</span>
-                        </div>
-                        <div class="bars-area">
-                            <div class="bar-group">
-                                <div class="bar" style="height: 15%;"></div>
-                                <span class="bar-label">Groceries</span>
+                        {% if expenditure_analysis %}
+                            <div class="y-axis">
+                                {% for label in y_axis_labels %}
+                                    <span>{{ "%.0f"|format(label) }} -</span>
+                                {% endfor %}
                             </div>
-                            <div class="bar-group">
-                                <div class="bar" style="height: 100%;"></div>
-                                <span class="bar-label">Rent</span>
+
+                            <div class="bars-area">
+                                {% for item in expenditure_analysis %}
+                                <div class="bar-group">
+                                    <div class="bar" style="height: {{ (item.spent / y_axis_max * 100) if y_axis_max > 0 else 0 }}%;"></div>
+                                    <span class="bar-label">{{ item.category_name }}</span>
+                                </div>
+                                {% endfor %}
                             </div>
-                            <div class="bar-group">
-                                <div class="bar" style="height: 2%;"></div>
-                                <span class="bar-label">Coffee</span>
+                        {% else %}
+                            <div class="y-axis">
+                                <span>100 -</span>
+                                <span>75 -</span>
+                                <span>50 -</span>
+                                <span>25 -</span>
+                                <span>0 -</span>
                             </div>
-                        </div>
+
+                            <div class="bars-area">
+                                <p>No expenditure data found.</p>
+                            </div>
+                        {% endif %}
                     </div>
                 </section>
 

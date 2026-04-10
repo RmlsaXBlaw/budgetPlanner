@@ -28,6 +28,7 @@
                     <hr class="thick-line">
                     <ul class="nav-links">
                         <li><a href="/dashboard">⌂ DASHBOARD</a></li>
+                        <li><a href="/add_category">⊞ ADD CATEGORY</a></li>
                         <li><a href="/add_transaction">⊕ ADD TRANSACTION</a></li>
                         <li><a href="/add_budget">◫ ADD BUDGET</a></li>
                         <li><a href="/admin">👤 HOUSEHOLD ADMIN</a></li>
@@ -39,6 +40,24 @@
             </aside>
 
             <main class="content">
+
+                <form action="/dashboard" method="GET" style="display: flex; justify-content: flex-end; align-items: center; gap: 15px; margin-bottom: 30px; flex-wrap: wrap;">
+        
+                    <label for="filter_month" style="font-family: var(--font-sans); font-size: 10px; font-weight: bold; letter-spacing: 1.5px;">PERIOD:</label>
+                    <input type="month" name="filter_month" class="cv-input" value="{{ selected_filter_month }}" onchange="this.form.submit()" style="font-size: 14px; padding: 2px 5px; cursor: pointer;">
+            
+                    <label for="scope" style="font-family: var(--font-sans); font-size: 10px; font-weight: bold; letter-spacing: 1.5px; margin-left: 10px;">VIEW SCOPE:</label>
+                    <select name="scope" class="cv-input" onchange="this.form.submit()" style="font-size: 14px; padding: 2px 5px; cursor: pointer;">
+                        <option value="individual" {% if selected_scope == 'individual' %}selected{% endif %}>INDIVIDUAL</option>
+                        {% if in_household %}
+                        <option value="household" {% if selected_scope == 'household' %}selected{% endif %}>HOUSEHOLD</option>
+                        {% endif %}
+                    </select>
+                    
+                    <input type="hidden" name="table_view" value="{{ selected_table_view }}">
+                    <input type="hidden" name="start_date" value="{{ selected_start_date or '' }}">
+                    <input type="hidden" name="end_date" value="{{ selected_end_date or '' }}">
+                </form>
                 
                 <section class="dashboard-section">
                     <h3 class="section-heading">EXECUTIVE SUMMARY</h3>
@@ -122,13 +141,9 @@
                             </tr>
                             {% else %}
                             <tr>
-                                <td>Groceries</td><td>HOUSEHOLD</td><td>$600.00</td><td>$195.50</td><td><strong>$404.50</strong></td>
-                            </tr>
-                            <tr>
-                                <td>Rent</td><td>HOUSEHOLD</td><td>$1200.00</td><td>$1200.00</td><td><strong>$0.00</strong></td>
-                            </tr>
-                            <tr>
-                                <td>Coffee</td><td>INDIVIDUAL</td><td>$50.00</td><td>$4.50</td><td><strong>$45.50</strong></td>
+                                <td colspan="5" style="text-align: center; font-family: var(--font-sans); font-size: 12px; letter-spacing: 1px; color: #555;">
+                                    NO BUDGETS DEFINED FOR THIS PERIOD.
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -143,21 +158,88 @@
                             <div class="filter-group">
                                 <label for="table_view">DATA VIEW</label>
                                 <select name="table_view" class="cv-input">
-                                    <option value="transactions">Transactions</option>
-                                    <option value="budgets">Budgets vs Actuals</option>
-                                    <option value="users">Household Members</option>
+                                    <option value="transactions" {% if selected_table_view == 'transactions' %}selected{% endif %}>Transactions</option>
+                                    <option value="budgets" {% if selected_table_view == 'budgets' %}selected{% endif %}>Budgets vs Actuals</option>
+                                    <option value="users" {% if selected_table_view == 'users' %}selected{% endif %}>Household Members</option>
                                 </select>
                             </div>
                             <div class="filter-group">
                                 <label for="start_date">START DATE</label>
-                                <input type="date" name="start_date" class="cv-input">
+                                <input type="date" name="start_date" class="cv-input" value="{{ selected_start_date or '' }}">
                             </div>
                             <div class="filter-group">
                                 <label for="end_date">END DATE</label>
-                                <input type="date" name="end_date" class="cv-input">
+                                <input type="date" name="end_date" class="cv-input" value="{{ selected_end_date or '' }}">
                             </div>
                             <button type="submit" class="cv-submit">RUN QUERY</button>
                         </form>
+                    </div>
+                
+                    <div style="margin-top: 30px;">
+                        <table class="data-table">
+                            {% if selected_table_view == 'transactions' %}
+                                <thead>
+                                    <tr>
+                                        <th>DATE</th>
+                                        <th>CATEGORY</th>
+                                        <th>DESCRIPTION</th>
+                                        <th>AMOUNT</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in explorer_data %}
+                                    <tr>
+                                        <td>{{ row.transaction_date }}</td>
+                                        <td>{{ row.category | upper }} ({{ row.category_type | upper }})</td>
+                                        <td>{{ row.description or '-' }}</td>
+                                        <td><strong>${{ "%.2f"|format(row.amount) }}</strong></td>
+                                    </tr>
+                                    {% else %}
+                                    <tr><td colspan="4" style="text-align: center; color: #555; font-size: 12px; letter-spacing: 1px;">NO TRANSACTIONS FOUND FOR THIS RANGE.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                
+                            {% elif selected_table_view == 'budgets' %}
+                                <thead>
+                                    <tr>
+                                        <th>MONTH/YEAR</th>
+                                        <th>CATEGORY</th>
+                                        <th>SCOPE</th>
+                                        <th>BUDGET AMOUNT</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in explorer_data %}
+                                    <tr>
+                                        <td>{{ row.budget_month }}/{{ row.budget_year }}</td>
+                                        <td>{{ row.category_name | upper }}</td>
+                                        <td>{{ row.scope | upper }}</td>
+                                        <td><strong>${{ "%.2f"|format(row.amount) }}</strong></td>
+                                    </tr>
+                                    {% else %}
+                                    <tr><td colspan="4" style="text-align: center; color: #555; font-size: 12px; letter-spacing: 1px;">NO BUDGETS FOUND FOR THIS RANGE.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                
+                            {% elif selected_table_view == 'users' %}
+                                <thead>
+                                    <tr>
+                                        <th>USERNAME</th>
+                                        <th>ROLE IN HOUSEHOLD</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in explorer_data %}
+                                    <tr>
+                                        <td>{{ row.username | upper }}</td>
+                                        <td><strong>{{ row.user_status | upper }}</strong></td>
+                                    </tr>
+                                    {% else %}
+                                    <tr><td colspan="2" style="text-align: center; color: #555; font-size: 12px; letter-spacing: 1px;">YOU ARE NOT IN A HOUSEHOLD YET.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            {% endif %}
+                        </table>
                     </div>
                 </section>
 

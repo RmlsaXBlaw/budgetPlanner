@@ -7,20 +7,35 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='loginStyle.css') }}" type="text/css" />
     <style>
         .switch-link { text-decoration: none; color: inherit; align-self: center; }
+        .error-msg { color: #cc0000; font-family: 'Courier New', Courier, monospace; font-size: 12px; font-weight: bold; text-align: center; margin-top: -15px; }
+        .hint { font-family: var(--font-sans); font-size: 10px; color: #555; margin-top: -15px; margin-bottom: 10px;}
     </style>
 </head>
 <body>
-    <form action="/registration" method="POST" class="form">
+    <form action="/registration" method="POST" class="form" style="height: 520px;">
         <h3 class="login">REGISTRATION</h3>
         <hr class="lineup">
         
-        <label for="username" class="label">USERNAME</label>
-        <input type="text" name="username" class="input" required>
-        <br><br>
-        <label for="password" class="label">PASSWORD</label>
-        <input type="password" name="password" class="input" required>
-        <br><br>
+        {% if error %}
+            <p class="error-msg">{{ error }}</p>
+        {% endif %}
         
+        <label for="username" class="label">USERNAME</label>
+        <input type="text" name="username" class="input" 
+               pattern="^[a-zA-Z0-9_.-]{3,20}$" 
+               title="3 to 20 characters. Letters, numbers, underscores, dots, and hyphens only." 
+               required>
+        <p class="hint">3-20 characters, alphanumeric.</p>
+        
+        <br>
+        <label for="password" class="label">PASSWORD</label>
+        <input type="password" name="password" class="input" 
+               pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$" 
+               title="Must contain at least one number and one uppercase and lowercase letter, one special character, and at least 8 or more characters" 
+               required>
+        <p class="hint">Min 8 chars, 1 upper, 1 lower, 1 number, 1 special.</p>
+        
+        <br>
         <input type="submit" value="REGISTER" class="submit">
         <hr class="line">
         

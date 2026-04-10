@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Budget Planner - Add Budget</title>
+    <title>Budget Planner - Add Category</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='dashboardStyle.css') }}" type="text/css" />
 </head>
 <body>
@@ -30,7 +30,7 @@
                         <li><a href="/dashboard">⌂ DASHBOARD</a></li>
                         <li><a href="/add_category">⊞ ADD CATEGORY</a></li>
                         <li><a href="/add_transaction">⊕ ADD TRANSACTION</a></li>
-                        <li><a href="/add_budget" style="text-decoration: underline;">◫ ADD BUDGET</a></li>
+                        <li><a href="/add_budget">◫ ADD BUDGET</a></li>
                         <li><a href="/admin">👤 HOUSEHOLD ADMIN</a></li>
                     </ul>
                 </div>
@@ -41,47 +41,33 @@
 
             <main class="content">
                 <section class="dashboard-section">
-                    <h3 class="section-heading">DEFINE NEW BUDGET</h3>
+                    <h3 class="section-heading">DEFINE NEW CATEGORY</h3>
                     <hr class="thick-line">
                     <div class="explorer-container">
-                        <form action="/add_budget" method="POST" style="display: flex; flex-direction: column; gap: 20px; max-width: 600px;">
+                        <form action="/add_category" method="POST" style="display: flex; flex-direction: column; gap: 20px; max-width: 600px;">
                             
                             <div class="filter-group">
-                                <label for="amount">BUDGET AMOUNT ($)</label>
-                                <input type="number" step="0.01" name="amount" class="cv-input" required>
-                            </div>
-
-                            <div style="display: flex; gap: 20px;">
-                                <div class="filter-group" style="flex: 1;">
-                                    <label for="budget_month">MONTH (1-12)</label>
-                                    <input type="number" min="1" max="12" name="budget_month" class="cv-input" required>
-                                </div>
-                                <div class="filter-group" style="flex: 1;">
-                                    <label for="budget_year">YEAR</label>
-                                    <input type="number" min="2020" max="2050" name="budget_year" class="cv-input" required>
-                                </div>
+                                <label for="category_name">CATEGORY NAME</label>
+                                <input type="text" name="category_name" class="cv-input" placeholder="e.g., Groceries, Rent, Salary" required>
                             </div>
 
                             <div class="filter-group">
-                                <label for="category_id">CATEGORY</label>
-                                <select name="category_id" class="cv-input" required>
-                                    {% for cat in categories %}
-                                        <option value="{{ cat.category_id }}">{{ cat.category_name }} ({{ cat.category_type | upper }})</option>
-                                    {% else %}
-                                        <option value="" disabled>No categories found. Please create one first.</option>
-                                    {% endfor %}
+                                <label for="category_type">CATEGORY TYPE</label>
+                                <select name="category_type" class="cv-input" required>
+                                    <option value="expenses">EXPENSES</option>
+                                    <option value="income">INCOME</option>
                                 </select>
                             </div>
 
                             <div class="filter-group">
-                                <label for="scope">SCOPE</label>
+                                <label for="scope">SCOPE (OWNERSHIP)</label>
                                 <select name="scope" class="cv-input" required>
-                                    <option value="individual">INDIVIDUAL</option>
-                                    <option value="household">HOUSEHOLD</option>
+                                    <option value="individual">INDIVIDUAL (JUST ME)</option>
+                                    <option value="household">HOUSEHOLD (SHARED)</option>
                                 </select>
                             </div>
 
-                            <button type="submit" class="cv-submit" style="margin-top: 15px; width: fit-content;">DEFINE BUDGET</button>
+                            <button type="submit" class="cv-submit" style="margin-top: 15px; width: fit-content;">CREATE CATEGORY</button>
                         </form>
                     </div>
                 </section>

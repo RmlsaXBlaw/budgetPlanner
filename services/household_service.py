@@ -1,5 +1,27 @@
 from db import get_connection
 
+def create_household(household_name, creator_user_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        INSERT INTO Household (Household_name)
+        VALUES (%s)
+    """, (household_name,))
+    
+    household_id = cursor.lastrowid
+
+    cursor.execute("""
+        UPDATE Users
+        SET Household_id = %s,
+            User_status = 'admin'
+        WHERE User_id = %s
+    """, (household_id, creator_user_id))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return household_id
 
 def get_household_by_user(user_id):
     """

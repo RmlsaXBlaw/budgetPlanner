@@ -28,6 +28,7 @@
                     <hr class="thick-line">
                     <ul class="nav-links">
                         <li><a href="/dashboard">⌂ DASHBOARD</a></li>
+                        <li><a href="/add_category">⊞ ADD CATEGORY</a></li>
                         <li><a href="/add_transaction">⊕ ADD TRANSACTION</a></li>
                         <li><a href="/add_budget">◫ ADD BUDGET</a></li>
                         <li><a href="/admin" style="text-decoration: underline;">👤 HOUSEHOLD ADMIN</a></li>
@@ -39,19 +40,54 @@
             </aside>
 
             <main class="content">
+                
+                {% if not household %}
+                <section class="dashboard-section">
+                    <h3 class="section-heading">CREATE HOUSEHOLD</h3>
+                    <hr class="thick-line">
+                    <p style="font-family: var(--font-sans); font-size: 12px; letter-spacing: 1px;">YOU ARE NOT CURRENTLY ASSIGNED TO A HOUSEHOLD.</p>
+                    <div class="explorer-container" style="margin-top: 20px;">
+                        <form action="/create_household" method="POST" class="filter-form">
+                            <div class="filter-group" style="flex: 1;">
+                                <label for="household_name">NEW HOUSEHOLD NAME</label>
+                                <input type="text" name="household_name" class="cv-input" required>
+                            </div>
+                            <button type="submit" class="cv-submit">ESTABLISH HOUSEHOLD</button>
+                        </form>
+                    </div>
+                </section>
+                
+                {% else %}
                 <section class="dashboard-section">
                     <h3 class="section-heading">HOUSEHOLD MANAGEMENT</h3>
                     <hr class="thick-line">
                     
-                    <div class="explorer-container" style="margin-bottom: 30px;">
+                    {% if current_user_status == 'admin' %}
+                    <div class="explorer-container" style="margin-bottom: 30px; display: flex; flex-direction: column; gap: 30px;">
+                        
                         <form action="/update_household" method="POST" class="filter-form">
                             <div class="filter-group" style="flex: 1;">
-                                <label for="household_name">HOUSEHOLD NAME</label>
-                                <input type="text" name="household_name" value="{{ household.household_name | default('The Smith Family', true) }}" class="cv-input" required>
+                                <label for="household_name">UPDATE HOUSEHOLD NAME</label>
+                                <input type="text" name="household_name" value="{{ household.household_name }}" class="cv-input" required>
                             </div>
                             <button type="submit" class="cv-submit">UPDATE NAME</button>
                         </form>
+
+                        <hr class="thin-line" style="margin: 0;">
+
+                        <form action="/add_member" method="POST" class="filter-form">
+                            <div class="filter-group" style="flex: 1;">
+                                <label for="username">INVITE MEMBER BY USERNAME</label>
+                                <input type="text" name="username" class="cv-input" placeholder="Enter exactly as registered" required>
+                            </div>
+                            <button type="submit" class="cv-submit">ADD MEMBER</button>
+                        </form>
                     </div>
+                    {% else %}
+                    <p style="font-family: var(--font-sans); font-size: 14px; letter-spacing: 1px; font-weight: bold; margin-bottom: 30px;">
+                        CURRENT HOUSEHOLD: {{ household.household_name | upper }}
+                    </p>
+                    {% endif %}
 
                     <h3 class="section-heading">REGISTERED MEMBERS</h3>
                     <hr class="thin-line">
@@ -60,7 +96,7 @@
                             <tr>
                                 <th>USERNAME</th>
                                 <th>ROLE</th>
-                                <th>ACTION</th>
+                                {% if current_user_status == 'admin' %}<th>ACTION</th>{% endif %}
                             </tr>
                         </thead>
                         <tbody>
@@ -68,18 +104,25 @@
                             <tr>
                                 <td>{{ member.username }}</td>
                                 <td>{{ member.user_status | upper }}</td>
-                                <td><a href="/remove_member/{{ member.user_id }}" style="color: black; font-weight: bold;">[ REMOVE ]</a></td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td>J.SMITH</td>
-                                <td>ADMIN</td>
-                                <td>-</td>
+                                
+                                {% if current_user_status == 'admin' %}
+                                <td>
+                                    {% if member.user_status == 'member' %}
+                                    <a href="/grant_admin/{{ member.user_id }}" style="color: black; font-weight: bold; margin-right: 15px; text-decoration: none;">[ GRANT ADMIN ]</a>
+                                    {% endif %}
+                                    
+                                    {% if member.user_id != session['user_id'] %}
+                                    <a href="/remove_member/{{ member.user_id }}" style="color: black; font-weight: bold; text-decoration: none;">[ REMOVE ]</a>
+                                    {% endif %}
+                                </td>
+                                {% endif %}
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </section>
+                {% endif %}
+
             </main>
         </div>
     </div>

@@ -199,3 +199,27 @@ def get_last_user_transactions(user_id, limit=5):
         })
 
     return result
+
+def get_user_categories(user_id, household_id):
+    """Fetches categories belonging to the user or their household"""
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT Category_id, Category_name, Category_type
+        FROM Category
+        WHERE User_id = %s OR Household_id = %s
+    """, (user_id, household_id))
+
+    rows = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    result = []
+    for row in rows:
+        result.append({
+            "category_id": row[0],
+            "category_name": row[1],
+            "category_type": row[2]
+        })
+    return result

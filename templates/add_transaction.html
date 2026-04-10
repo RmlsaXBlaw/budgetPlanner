@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Budget Planner - Add Transaction</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboardStyle.css') }}" type="text/css" />
+</head>
+<body>
+    <div class="layout-wrapper">
+        <header class="top-header">
+            <div class="header-left">
+                <h1 class="main-title">BUDGET PLANNER</h1>
+                <h2 class="sub-title">CURRICULUM VITAE STYLE ADMINISTRATION</h2>
+            </div>
+            <div class="header-right">
+                <div class="user-info">
+                    <span class="user-name">{{ current_user.username | default('J.SMITH', true) | upper }}</span>
+                    <span class="user-role">{{ current_user.role | default('ADMIN', true) | upper }}</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="main-container">
+            <aside class="sidebar">
+                <div class="nav-section">
+                    <h3 class="section-heading">NAVIGATION</h3>
+                    <hr class="thick-line">
+                    <ul class="nav-links">
+                        <li><a href="/dashboard">⌂ DASHBOARD</a></li>
+                        <li><a href="/add_transaction" style="text-decoration: underline;">⊕ ADD TRANSACTION</a></li>
+                        <li><a href="/add_budget">◫ ADD BUDGET</a></li>
+                        <li><a href="/admin">👤 HOUSEHOLD ADMIN</a></li>
+                    </ul>
+                </div>
+                <div class="nav-footer">
+                    <a href="/logout" class="sign-out">↪ SIGN OUT</a>
+                </div>
+            </aside>
+
+            <main class="content">
+                <section class="dashboard-section">
+                    <h3 class="section-heading">RECORD NEW TRANSACTION</h3>
+                    <hr class="thick-line">
+                    <div class="explorer-container">
+                        <form action="/add_transaction" method="POST" style="display: flex; flex-direction: column; gap: 20px; max-width: 600px;">
+                            
+                            <div class="filter-group">
+                                <label for="amount">AMOUNT ($)</label>
+                                <input type="number" step="0.01" name="amount" class="cv-input" required>
+                            </div>
+
+                            <div class="filter-group">
+                                <label for="transaction_date">TRANSACTION DATE</label>
+                                <input type="date" name="transaction_date" class="cv-input" required>
+                            </div>
+
+                            <div class="filter-group">
+                                <label for="category_id">CATEGORY</label>
+                                <select name="category_id" class="cv-input" required>
+                                    {% for cat in categories %}
+                                        <option value="{{ cat.category_id }}">{{ cat.category_name }} ({{ cat.category_type }})</option>
+                                    {% else %}
+                                        <option value="" disabled>No categories found. Please create one first.</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="filter-group">
+                                <label for="transaction_desc">DESCRIPTION (OPTIONAL)</label>
+                                <input type="text" name="transaction_desc" class="cv-input">
+                            </div>
+
+                            <button type="submit" class="cv-submit" style="margin-top: 15px; width: fit-content;">SUBMIT RECORD</button>
+                        </form>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+</body>
+</html>

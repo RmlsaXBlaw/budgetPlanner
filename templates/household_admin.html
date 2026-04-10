@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Budget Planner - Household Admin</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboardStyle.css') }}" type="text/css" />
+</head>
+<body>
+    <div class="layout-wrapper">
+        <header class="top-header">
+            <div class="header-left">
+                <h1 class="main-title">BUDGET PLANNER</h1>
+                <h2 class="sub-title">CURRICULUM VITAE STYLE ADMINISTRATION</h2>
+            </div>
+            <div class="header-right">
+                <div class="user-info">
+                    <span class="user-name">{{ current_user.username | default('J.SMITH', true) | upper }}</span>
+                    <span class="user-role">{{ current_user.role | default('ADMIN', true) | upper }}</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="main-container">
+            <aside class="sidebar">
+                <div class="nav-section">
+                    <h3 class="section-heading">NAVIGATION</h3>
+                    <hr class="thick-line">
+                    <ul class="nav-links">
+                        <li><a href="/dashboard">⌂ DASHBOARD</a></li>
+                        <li><a href="/add_transaction">⊕ ADD TRANSACTION</a></li>
+                        <li><a href="/add_budget">◫ ADD BUDGET</a></li>
+                        <li><a href="/admin" style="text-decoration: underline;">👤 HOUSEHOLD ADMIN</a></li>
+                    </ul>
+                </div>
+                <div class="nav-footer">
+                    <a href="/logout" class="sign-out">↪ SIGN OUT</a>
+                </div>
+            </aside>
+
+            <main class="content">
+                <section class="dashboard-section">
+                    <h3 class="section-heading">HOUSEHOLD MANAGEMENT</h3>
+                    <hr class="thick-line">
+                    
+                    <div class="explorer-container" style="margin-bottom: 30px;">
+                        <form action="/update_household" method="POST" class="filter-form">
+                            <div class="filter-group" style="flex: 1;">
+                                <label for="household_name">HOUSEHOLD NAME</label>
+                                <input type="text" name="household_name" value="{{ household.household_name | default('The Smith Family', true) }}" class="cv-input" required>
+                            </div>
+                            <button type="submit" class="cv-submit">UPDATE NAME</button>
+                        </form>
+                    </div>
+
+                    <h3 class="section-heading">REGISTERED MEMBERS</h3>
+                    <hr class="thin-line">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>USERNAME</th>
+                                <th>ROLE</th>
+                                <th>ACTION</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for member in members %}
+                            <tr>
+                                <td>{{ member.username }}</td>
+                                <td>{{ member.user_status | upper }}</td>
+                                <td><a href="/remove_member/{{ member.user_id }}" style="color: black; font-weight: bold;">[ REMOVE ]</a></td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td>J.SMITH</td>
+                                <td>ADMIN</td>
+                                <td>-</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </section>
+            </main>
+        </div>
+    </div>
+</body>
+</html>

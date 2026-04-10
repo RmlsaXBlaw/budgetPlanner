@@ -75,9 +75,9 @@ def get_executive_summary(user_id):
 
 #     return result
 def get_detailed_budgets(user_id, month=None, year=None):
-        """
-        zwraca szczegółowe informacje o budżetach dla danego użytkownika - tabela na dashboardzie z danego miesiaca i roku
-        """
+    """
+    zwraca szczegółowe informacje o budżetach dla danego użytkownika - tabela na dashboardzie z danego miesiaca i roku
+    """
     if month is None or year is None:
         today = datetime.today()
         month = today.month
@@ -122,11 +122,11 @@ def get_detailed_budgets(user_id, month=None, year=None):
 
     return result
 def get_transactions(user_id, start_date=None, end_date=None):
-        """
-        zwraca transakcje dla danego użytkownika, opcjonalnie filtrowane po zakresie dat
-         - dane do eksploratora transakcji na dashboardzie
-         - jeśli start_date i end_date
-        """
+    """
+    zwraca transakcje dla danego użytkownika, opcjonalnie filtrowane po zakresie dat
+     - dane do eksploratora transakcji na dashboardzie
+     - jeśli start_date i end_date
+    """
     conn = get_connection()
     cursor = conn.cursor()
 

@@ -161,9 +161,6 @@ def filter_transactions(user_id, household_id=None, start_date=None, end_date=No
     return result
 
 
-from db import get_connection
-
-
 def get_last_user_transactions(user_id, limit=5):
     """
     Zwraca ostatnie 5  transakcji danego użytkownika 

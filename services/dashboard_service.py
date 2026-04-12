@@ -134,18 +134,20 @@ def get_detailed_budgets(user_id, household_id=None, month=None, year=None, scop
             LEFT JOIN Transactions t
                 ON t.Category_id = b.Category_id
                 AND t.User_id = b.User_id
-                AND MONTH(t.Transaction_date) = b.Budget_month
-                AND YEAR(t.Transaction_date) = b.Budget_year
+                AND MONTH(t.Transaction_date) = %s
+                AND YEAR(t.Transaction_date) = %s
             WHERE b.User_id = %s
               AND b.Budget_month = %s
               AND b.Budget_year = %s
             GROUP BY b.Budget_id, c.Category_name, b.Amount
             ORDER BY c.Category_name
         """
-        params = (user_id, month, year)
+        params = (month, year, user_id, month, year)
+
     else:
         if not household_id:
             return []
+
         query = """
             SELECT
                 c.Category_name AS category_name,
@@ -157,15 +159,15 @@ def get_detailed_budgets(user_id, household_id=None, month=None, year=None, scop
             LEFT JOIN Transactions t
                 ON t.Category_id = b.Category_id
                 AND t.Household_id = b.Household_id
-                AND MONTH(t.Transaction_date) = b.Budget_month
-                AND YEAR(t.Transaction_date) = b.Budget_year
+                AND MONTH(t.Transaction_date) = %s
+                AND YEAR(t.Transaction_date) = %s
             WHERE b.Household_id = %s
               AND b.Budget_month = %s
               AND b.Budget_year = %s
             GROUP BY b.Budget_id, c.Category_name, b.Amount
             ORDER BY c.Category_name
         """
-        params = (household_id, month, year)
+        params = (month, year, household_id, month, year)
 
     cursor.execute(query, params)
     rows = cursor.fetchall()
@@ -181,6 +183,7 @@ def get_detailed_budgets(user_id, household_id=None, month=None, year=None, scop
             "spent": float(row[3])
         })
     return result
+    
 def get_transactions(user_id, start_date=None, end_date=None):
     conn = get_connection()
     cursor = conn.cursor()

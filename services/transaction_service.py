@@ -1,18 +1,23 @@
 from db import get_connection
 
 
-def add_transaction(user_id, household_id, category_id, amount, transaction_date, transaction_desc=None):
-    """
-    Dodaje nową transakcję
-    household_id może być NULL, jeśli transakcja nie dotyczy gospodarstwa
-    """
+def add_transaction(user_id, household_id, category_id, amount, transaction_date, scope, transaction_desc=None):
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute("""
-        INSERT INTO Transactions (Household_id, User_id, Category_id, Amount, Transaction_date, Transaction_desc)
-        VALUES (%s, %s, %s, %s, %s, %s)
-    """, (household_id, user_id, category_id, amount, transaction_date, transaction_desc))
+    if scope == 'individual':
+        cursor.execute("""
+            INSERT INTO Transactions
+            (Household_id, User_id, Category_id, Amount, Transaction_date, Transaction_desc)
+            VALUES (NULL, %s, %s, %s, %s, %s)
+        """, (user_id, category_id, amount, transaction_date, transaction_desc))
+
+    else:
+        cursor.execute("""
+            INSERT INTO Transactions
+            (Household_id, User_id, Category_id, Amount, Transaction_date, Transaction_desc)
+            VALUES (%s, NULL, %s, %s, %s, %s)
+        """, (household_id, category_id, amount, transaction_date, transaction_desc))
 
     conn.commit()
     cursor.close()

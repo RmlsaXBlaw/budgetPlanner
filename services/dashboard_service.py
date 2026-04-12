@@ -18,7 +18,9 @@ def get_executive_summary(user_id, household_id=None, month=None, year=None, sco
         cursor.execute("""
             SELECT COALESCE(SUM(Amount), 0)
             FROM Budget
-            WHERE User_id = %s AND Budget_month = %s AND Budget_year = %s
+            WHERE User_id = %s
+              AND Budget_month = %s
+              AND Budget_year = %s
         """, (user_id, month, year))
         total_budget = float(cursor.fetchone()[0])
 
@@ -32,15 +34,19 @@ def get_executive_summary(user_id, household_id=None, month=None, year=None, sco
               AND c.Category_type = 'expenses'
         """, (user_id, month, year))
         total_spent = float(cursor.fetchone()[0])
-        
-    else: # scope == 'household'
+
+    else:  # household
         if not household_id:
+            cursor.close()
+            conn.close()
             return {"total_budget": 0.0, "total_spent": 0.0, "total_remaining": 0.0}
-            
+
         cursor.execute("""
             SELECT COALESCE(SUM(Amount), 0)
             FROM Budget
-            WHERE Household_id = %s AND Budget_month = %s AND Budget_year = %s
+            WHERE Household_id = %s
+              AND Budget_month = %s
+              AND Budget_year = %s
         """, (household_id, month, year))
         total_budget = float(cursor.fetchone()[0])
 

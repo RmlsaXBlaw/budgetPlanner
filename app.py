@@ -99,8 +99,9 @@ def add_transaction_route():
         transaction_date = request.form['transaction_date']
         category_id = request.form['category_id']
         transaction_desc = request.form.get('transaction_desc', None)
+        scope = request.form['scope']
 
-        add_transaction(user_id, household_id, category_id, amount, transaction_date, transaction_desc)
+        add_transaction(user_id, household_id, category_id, amount, transaction_date, scope, transaction_desc)
         return redirect(url_for('dashboard'))
 
     # Fetch categories for the GET request (loading the form)

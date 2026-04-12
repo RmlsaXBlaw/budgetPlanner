@@ -39,7 +39,7 @@ CREATE TABLE Category (
 CREATE TABLE Transactions (
     Transaction_id INT NOT NULL AUTO_INCREMENT,
     Household_id INT NULL,
-    User_id INT NOT NULL,
+    User_id INT NULL,
     Category_id INT NOT NULL,
     Amount DECIMAL(8,2) NOT NULL, 
     Transaction_date DATE NOT NULL, 
@@ -47,8 +47,14 @@ CREATE TABLE Transactions (
     PRIMARY KEY (Transaction_id),
     FOREIGN KEY (Household_id) REFERENCES Household(Household_id),
     FOREIGN KEY (User_id) REFERENCES Users(User_id),
-    FOREIGN KEY (Category_id) REFERENCES Category(Category_id)
+    FOREIGN KEY (Category_id) REFERENCES Category(Category_id),
+    CHECK (
+        (Household_id IS NOT NULL AND User_id IS NULL)
+        OR
+        (Household_id IS NULL AND User_id IS NOT NULL)
+    )
 );
+
 
 CREATE TABLE Budget (
     Budget_id INT NOT NULL AUTO_INCREMENT,

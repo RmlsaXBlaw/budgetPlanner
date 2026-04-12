@@ -71,9 +71,6 @@ def get_executive_summary(user_id, household_id=None, month=None, year=None, sco
     }
 
 
-
-from datetime import datetime
-
 def get_detailed_budgets(user_id, household_id=None, month=None, year=None, scope='individual'):
     """
     Zwraca szczegółowe budget/spent per nazwa kategorii.

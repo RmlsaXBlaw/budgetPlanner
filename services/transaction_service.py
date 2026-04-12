@@ -205,26 +205,57 @@ def get_last_user_transactions(user_id, limit=5):
 
     return result
 
-def get_user_categories(user_id, household_id):
-    """Fetches categories belonging to the user or their household"""
+def get_user_categories(user_id, household_id=None, scope=None, category_type=None):
     conn = get_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(dictionary=True)
 
-    cursor.execute("""
-        SELECT Category_id, Category_name, Category_type
+    base_query = """
+        SELECT
+            Category_id AS category_id,
+            Category_name AS category_name,
+            Category_type AS category_type,
+            CASE
+                WHEN User_id IS NOT NULL THEN 'individual'
+                ELSE 'household'
+            END AS scope
         FROM Category
-        WHERE User_id = %s OR Household_id = %s
-    """, (user_id, household_id))
+        WHERE
+    """
 
-    rows = cursor.fetchall()
+    conditions = []
+    params = []
+
+    if scope == 'individual':
+        conditions.append("(User_id = %s AND Household_id IS NULL)")
+        params.append(user_id)
+
+    elif scope == 'household':
+        if household_id is None:
+            cursor.close()
+            conn.close()
+            return []
+        conditions.append("(Household_id = %s AND User_id IS NULL)")
+        params.append(household_id)
+
+    else:
+        conditions.append("""
+            (
+                (User_id = %s AND Household_id IS NULL)
+                OR
+                (Household_id = %s AND User_id IS NULL)
+            )
+        """)
+        params.extend([user_id, household_id])
+
+    if category_type:
+        conditions.append("Category_type = %s")
+        params.append(category_type)
+
+    query = base_query + " AND ".join(conditions) + " ORDER BY Category_name"
+
+    cursor.execute(query, params)
+    categories = cursor.fetchall()
+
     cursor.close()
     conn.close()
-
-    result = []
-    for row in rows:
-        result.append({
-            "category_id": row[0],
-            "category_name": row[1],
-            "category_type": row[2]
-        })
-    return result
+    return categories

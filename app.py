@@ -95,16 +95,23 @@ def add_transaction_route():
     household_id = household_data['household_id'] if household_data else None
 
     if request.method == 'POST':
-        amount = request.form['amount']
-        transaction_date = request.form['transaction_date']
-        category_id = request.form['category_id']
-        transaction_desc = request.form.get('transaction_desc', None)
-        scope = request.form['scope']
+        amount = request.form.get('amount')
+        transaction_date = request.form.get('transaction_date')
+        category_id = request.form.get('category_id')
+        transaction_desc = request.form.get('transaction_desc')
+        scope = request.form.get('scope')
+
+        if not category_id:
+            return "Category is required", 400
+
         add_transaction(user_id, household_id, category_id, amount, transaction_date, scope, transaction_desc)
         return redirect(url_for('dashboard'))
 
-    # Fetch categories for the GET request (loading the form)
-    categories = get_user_categories(user_id, household_id)
+    categories = get_user_categories(
+        user_id,
+        household_id,
+        category_type='expenses'
+    )
     return render_template('add_transaction.html', categories=categories)
 
 @app.route('/add_budget', methods=['GET', 'POST'])
@@ -117,19 +124,23 @@ def add_budget_route():
     household_id = household_data['household_id'] if household_data else None
 
     if request.method == 'POST':
-        amount = request.form['amount']
-        budget_month = request.form['budget_month']
-        budget_year = request.form['budget_year']
-        category_id = request.form['category_id']
-        scope = request.form['scope']
+        amount = request.form.get('amount')
+        budget_month = request.form.get('budget_month')
+        budget_year = request.form.get('budget_year')
+        category_id = request.form.get('category_id')
+        scope = request.form.get('scope')
+
+        if not category_id:
+            return "Category is required", 400
 
         add_budget(user_id, household_id, category_id, amount, budget_month, budget_year, scope)
-        
         return redirect(url_for('dashboard'))
 
-    
-    # Fetch categories for the dropdown
-    categories = get_user_categories(user_id, household_id)
+    categories = get_user_categories(
+        user_id,
+        household_id,
+        category_type='income'
+    )
     return render_template('add_budget.html', categories=categories)
 
 

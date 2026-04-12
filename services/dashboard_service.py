@@ -72,10 +72,12 @@ def get_executive_summary(user_id, household_id=None, month=None, year=None, sco
 
 
 
+from datetime import datetime
+
 def get_detailed_budgets(user_id, household_id=None, month=None, year=None, scope='individual'):
     """
-    Zwraca wszystkie kategorie expenses dla danego scope.
-    Jeśli brak budgetu albo transakcji, pokazuje 0.
+    Zwraca szczegółowe budget/spent per nazwa kategorii.
+    Salary(income) i Salary(expenses) są traktowane jako jedna kategoria: Salary.
     """
     if month is None or year is None:
         today = datetime.today()
@@ -83,40 +85,63 @@ def get_detailed_budgets(user_id, household_id=None, month=None, year=None, scop
         year = today.year
 
     conn = get_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(dictionary=True)
 
     if scope == 'individual':
         query = """
             SELECT
-                c.Category_name AS category_name,
+                names.category_name AS category_name,
                 'INDIVIDUAL' AS scope,
-                COALESCE(b.Amount, 0) AS amount,
-                COALESCE(tx.spent, 0) AS spent
-            FROM Category c
-            LEFT JOIN Budget b
-                ON b.Category_id = c.Category_id
-                AND b.User_id = c.User_id
-                AND b.Budget_month = %s
-                AND b.Budget_year = %s
+                COALESCE(b.amount, 0) AS amount,
+                COALESCE(t.spent, 0) AS spent
+            FROM (
+                SELECT DISTINCT c.Category_name AS category_name
+                FROM Category c
+                LEFT JOIN Budget b
+                    ON b.Category_id = c.Category_id
+                    AND b.User_id = %s
+                    AND b.Budget_month = %s
+                    AND b.Budget_year = %s
+                LEFT JOIN Transactions tr
+                    ON tr.Category_id = c.Category_id
+                    AND tr.User_id = %s
+                    AND MONTH(tr.Transaction_date) = %s
+                    AND YEAR(tr.Transaction_date) = %s
+                WHERE c.User_id = %s
+                  AND c.Household_id IS NULL
+                  AND (b.Budget_id IS NOT NULL OR tr.Transaction_id IS NOT NULL)
+            ) names
             LEFT JOIN (
                 SELECT
-                    t.Category_id,
-                    t.User_id,
+                    c.Category_name,
+                    SUM(b.Amount) AS amount
+                FROM Budget b
+                JOIN Category c ON b.Category_id = c.Category_id
+                WHERE b.User_id = %s
+                  AND b.Budget_month = %s
+                  AND b.Budget_year = %s
+                GROUP BY c.Category_name
+            ) b ON b.Category_name = names.category_name
+            LEFT JOIN (
+                SELECT
+                    c.Category_name,
                     SUM(t.Amount) AS spent
                 FROM Transactions t
+                JOIN Category c ON t.Category_id = c.Category_id
                 WHERE t.User_id = %s
                   AND MONTH(t.Transaction_date) = %s
                   AND YEAR(t.Transaction_date) = %s
-                GROUP BY t.Category_id, t.User_id
-            ) tx
-                ON tx.Category_id = c.Category_id
-                AND tx.User_id = c.User_id
-            WHERE c.User_id = %s
-              AND c.Household_id IS NULL
-              AND c.Category_type = 'expenses'
-            ORDER BY c.Category_name
+                GROUP BY c.Category_name
+            ) t ON t.Category_name = names.category_name
+            ORDER BY names.category_name
         """
-        params = (month, year, user_id, month, year, user_id)
+        params = (
+            user_id, month, year,
+            user_id, month, year,
+            user_id,
+            user_id, month, year,
+            user_id, month, year
+        )
 
     elif scope == 'household':
         if not household_id:
@@ -126,35 +151,58 @@ def get_detailed_budgets(user_id, household_id=None, month=None, year=None, scop
 
         query = """
             SELECT
-                c.Category_name AS category_name,
+                names.category_name AS category_name,
                 'HOUSEHOLD' AS scope,
-                COALESCE(b.Amount, 0) AS amount,
-                COALESCE(tx.spent, 0) AS spent
-            FROM Category c
-            LEFT JOIN Budget b
-                ON b.Category_id = c.Category_id
-                AND b.Household_id = c.Household_id
-                AND b.Budget_month = %s
-                AND b.Budget_year = %s
+                COALESCE(b.amount, 0) AS amount,
+                COALESCE(t.spent, 0) AS spent
+            FROM (
+                SELECT DISTINCT c.Category_name AS category_name
+                FROM Category c
+                LEFT JOIN Budget b
+                    ON b.Category_id = c.Category_id
+                    AND b.Household_id = %s
+                    AND b.Budget_month = %s
+                    AND b.Budget_year = %s
+                LEFT JOIN Transactions tr
+                    ON tr.Category_id = c.Category_id
+                    AND tr.Household_id = %s
+                    AND MONTH(tr.Transaction_date) = %s
+                    AND YEAR(tr.Transaction_date) = %s
+                WHERE c.Household_id = %s
+                  AND c.User_id IS NULL
+                  AND (b.Budget_id IS NOT NULL OR tr.Transaction_id IS NOT NULL)
+            ) names
             LEFT JOIN (
                 SELECT
-                    t.Category_id,
-                    t.Household_id,
+                    c.Category_name,
+                    SUM(b.Amount) AS amount
+                FROM Budget b
+                JOIN Category c ON b.Category_id = c.Category_id
+                WHERE b.Household_id = %s
+                  AND b.Budget_month = %s
+                  AND b.Budget_year = %s
+                GROUP BY c.Category_name
+            ) b ON b.Category_name = names.category_name
+            LEFT JOIN (
+                SELECT
+                    c.Category_name,
                     SUM(t.Amount) AS spent
                 FROM Transactions t
+                JOIN Category c ON t.Category_id = c.Category_id
                 WHERE t.Household_id = %s
                   AND MONTH(t.Transaction_date) = %s
                   AND YEAR(t.Transaction_date) = %s
-                GROUP BY t.Category_id, t.Household_id
-            ) tx
-                ON tx.Category_id = c.Category_id
-                AND tx.Household_id = c.Household_id
-            WHERE c.Household_id = %s
-              AND c.User_id IS NULL
-              AND c.Category_type = 'expenses'
-            ORDER BY c.Category_name
+                GROUP BY c.Category_name
+            ) t ON t.Category_name = names.category_name
+            ORDER BY names.category_name
         """
-        params = (month, year, household_id, month, year, household_id)
+        params = (
+            household_id, month, year,
+            household_id, month, year,
+            household_id,
+            household_id, month, year,
+            household_id, month, year
+        )
 
     else:
         cursor.close()
@@ -169,12 +217,15 @@ def get_detailed_budgets(user_id, household_id=None, month=None, year=None, scop
 
     result = []
     for row in rows:
+        amount = float(row["amount"] or 0)
+        spent = float(row["spent"] or 0)
+
         result.append({
-            "category_name": row[0],
-            "scope": row[1],
-            "amount": float(row[2]),
-            "spent": float(row[3]),
-            "remaining": float(row[2]) - float(row[3])
+            "category_name": row["category_name"],
+            "scope": row["scope"],
+            "amount": amount,
+            "spent": spent,
+            "remaining": amount - spent
         })
 
     return result

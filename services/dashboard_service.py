@@ -71,48 +71,11 @@ def get_executive_summary(user_id, household_id=None, month=None, year=None, sco
     }
 
 
-# def get_detailed_budgets(user_id):
-#     """
-#     zwraca szczegółowe informacje o budżetach dla danego użytkownika - tabela na dashboardzie z całego okresu z bazy danych
-#     """
 
-#     conn = get_connection()
-#     cursor = conn.cursor()
-
-#     cursor.execute("""
-#         SELECT
-#             c.Category_name AS category_name,
-#             'INDIVIDUAL' AS scope,
-#             b.Amount AS amount,
-#             COALESCE(SUM(t.Amount), 0) AS spent
-#         FROM Budget b
-#         JOIN Category c ON b.Category_id = c.Category_id
-#         LEFT JOIN Transactions t
-#             ON t.Category_id = b.Category_id
-#             AND t.User_id = b.User_id
-#         WHERE b.User_id = %s
-#         GROUP BY b.Budget_id, c.Category_name, b.Amount
-#         ORDER BY c.Category_name
-#     """, (user_id,))
-
-#     rows = cursor.fetchall()
-
-#     cursor.close()
-#     conn.close()
-
-#     result = []
-#     for row in rows:
-#         result.append({
-#             "category_name": row[0],
-#             "scope": row[1],
-#             "amount": float(row[2]),
-#             "spent": float(row[3])
-#         })
-
-#     return result
 def get_detailed_budgets(user_id, household_id=None, month=None, year=None, scope='individual'):
     """
-    Returns detailed budgets, filtered by individual or household scope.
+    Zwraca wszystkie kategorie expenses dla danego scope.
+    Jeśli brak budgetu albo transakcji, pokazuje 0.
     """
     if month is None or year is None:
         today = datetime.today()
@@ -127,50 +90,80 @@ def get_detailed_budgets(user_id, household_id=None, month=None, year=None, scop
             SELECT
                 c.Category_name AS category_name,
                 'INDIVIDUAL' AS scope,
-                b.Amount AS amount,
-                COALESCE(SUM(t.Amount), 0) AS spent
-            FROM Budget b
-            JOIN Category c ON b.Category_id = c.Category_id
-            LEFT JOIN Transactions t
-                ON t.Category_id = b.Category_id
-                AND t.User_id = b.User_id
-                AND MONTH(t.Transaction_date) = %s
-                AND YEAR(t.Transaction_date) = %s
-            WHERE b.User_id = %s
-              AND b.Budget_month = %s
-              AND b.Budget_year = %s
-            GROUP BY b.Budget_id, c.Category_name, b.Amount
+                COALESCE(b.Amount, 0) AS amount,
+                COALESCE(tx.spent, 0) AS spent
+            FROM Category c
+            LEFT JOIN Budget b
+                ON b.Category_id = c.Category_id
+                AND b.User_id = c.User_id
+                AND b.Budget_month = %s
+                AND b.Budget_year = %s
+            LEFT JOIN (
+                SELECT
+                    t.Category_id,
+                    t.User_id,
+                    SUM(t.Amount) AS spent
+                FROM Transactions t
+                WHERE t.User_id = %s
+                  AND MONTH(t.Transaction_date) = %s
+                  AND YEAR(t.Transaction_date) = %s
+                GROUP BY t.Category_id, t.User_id
+            ) tx
+                ON tx.Category_id = c.Category_id
+                AND tx.User_id = c.User_id
+            WHERE c.User_id = %s
+              AND c.Household_id IS NULL
+              AND c.Category_type = 'expenses'
             ORDER BY c.Category_name
         """
-        params = (month, year, user_id, month, year)
+        params = (month, year, user_id, month, year, user_id)
 
-    else:
+    elif scope == 'household':
         if not household_id:
+            cursor.close()
+            conn.close()
             return []
 
         query = """
             SELECT
                 c.Category_name AS category_name,
                 'HOUSEHOLD' AS scope,
-                b.Amount AS amount,
-                COALESCE(SUM(t.Amount), 0) AS spent
-            FROM Budget b
-            JOIN Category c ON b.Category_id = c.Category_id
-            LEFT JOIN Transactions t
-                ON t.Category_id = b.Category_id
-                AND t.Household_id = b.Household_id
-                AND MONTH(t.Transaction_date) = %s
-                AND YEAR(t.Transaction_date) = %s
-            WHERE b.Household_id = %s
-              AND b.Budget_month = %s
-              AND b.Budget_year = %s
-            GROUP BY b.Budget_id, c.Category_name, b.Amount
+                COALESCE(b.Amount, 0) AS amount,
+                COALESCE(tx.spent, 0) AS spent
+            FROM Category c
+            LEFT JOIN Budget b
+                ON b.Category_id = c.Category_id
+                AND b.Household_id = c.Household_id
+                AND b.Budget_month = %s
+                AND b.Budget_year = %s
+            LEFT JOIN (
+                SELECT
+                    t.Category_id,
+                    t.Household_id,
+                    SUM(t.Amount) AS spent
+                FROM Transactions t
+                WHERE t.Household_id = %s
+                  AND MONTH(t.Transaction_date) = %s
+                  AND YEAR(t.Transaction_date) = %s
+                GROUP BY t.Category_id, t.Household_id
+            ) tx
+                ON tx.Category_id = c.Category_id
+                AND tx.Household_id = c.Household_id
+            WHERE c.Household_id = %s
+              AND c.User_id IS NULL
+              AND c.Category_type = 'expenses'
             ORDER BY c.Category_name
         """
-        params = (month, year, household_id, month, year)
+        params = (month, year, household_id, month, year, household_id)
+
+    else:
+        cursor.close()
+        conn.close()
+        raise ValueError("scope musi być 'individual' albo 'household'")
 
     cursor.execute(query, params)
     rows = cursor.fetchall()
+
     cursor.close()
     conn.close()
 
@@ -180,10 +173,12 @@ def get_detailed_budgets(user_id, household_id=None, month=None, year=None, scop
             "category_name": row[0],
             "scope": row[1],
             "amount": float(row[2]),
-            "spent": float(row[3])
+            "spent": float(row[3]),
+            "remaining": float(row[2]) - float(row[3])
         })
+
     return result
-    
+
 def get_transactions(user_id, start_date=None, end_date=None):
     conn = get_connection()
     cursor = conn.cursor()

@@ -109,8 +109,7 @@ def add_transaction_route():
 
     categories = get_user_categories(
         user_id,
-        household_id,
-        category_type='expenses'
+        household_id
     )
     return render_template('add_transaction.html', categories=categories)
 
@@ -138,8 +137,7 @@ def add_budget_route():
 
     categories = get_user_categories(
         user_id,
-        household_id,
-        category_type='income'
+        household_id
     )
     return render_template('add_budget.html', categories=categories)
 
@@ -210,7 +208,7 @@ def add_member():
     target_user = get_user_by_username(target_username)
     if target_user:
         # Add them as a standard member
-        add_user_to_household(target_user[0], household['household_id'], 'member')
+        add_user_to_household(str(target_user["_id"]), household['household_id'], 'member')
         
     return redirect(url_for('admin'))
 
@@ -305,10 +303,10 @@ def dashboard():
     # Database Explorer logic
     explorer_data = []
     if table_view == 'transactions':
-        explorer_data = get_transactions(user_id, start_date, end_date)
+        explorer_data = get_transactions(user_id, household_id, start_date, end_date)
     elif table_view == 'budgets':
         from services.budget_service import filter_budgets
-        explorer_data = filter_budgets(user_id)
+        explorer_data = filter_budgets(user_id, household_id)
     elif table_view == 'users':
         if household_data:
             from services.household_service import get_household_members

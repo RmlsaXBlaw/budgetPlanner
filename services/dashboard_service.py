@@ -1,6 +1,6 @@
 from datetime import datetime
+from bson.objectid import ObjectId
 from db import get_connection
-
 
 def get_executive_summary(user_id, household_id=None, month=None, year=None, scope='individual'):
     """
@@ -11,58 +11,34 @@ def get_executive_summary(user_id, household_id=None, month=None, year=None, sco
         month = today.month
         year = today.year
 
-    conn = get_connection()
-    cursor = conn.cursor()
+    db = get_connection()
+    owner_type = 'user' if scope == 'individual' else 'household'
+    owner_id = ObjectId(user_id) if scope == 'individual' else ObjectId(household_id)
 
-    if scope == 'individual':
-        cursor.execute("""
-            SELECT COALESCE(SUM(Amount), 0)
-            FROM Budget
-            WHERE User_id = %s
-              AND Budget_month = %s
-              AND Budget_year = %s
-        """, (user_id, month, year))
-        total_budget = float(cursor.fetchone()[0])
+    if scope == 'household' and not household_id:
+        return {"total_budget": 0.0, "total_spent": 0.0, "total_remaining": 0.0}
 
-        cursor.execute("""
-            SELECT COALESCE(SUM(t.Amount), 0)
-            FROM Transactions t
-            JOIN Category c ON t.Category_id = c.Category_id
-            WHERE t.User_id = %s
-              AND MONTH(t.Transaction_date) = %s
-              AND YEAR(t.Transaction_date) = %s
-              AND c.Category_type = 'expenses'
-        """, (user_id, month, year))
-        total_spent = float(cursor.fetchone()[0])
+    ledger = db.ledgers.find_one({
+        "owner_type": owner_type,
+        "owner_id": owner_id,
+        "month": int(month),
+        "year": int(year)
+    }) or {}
 
-    else:  # household
-        if not household_id:
-            cursor.close()
-            conn.close()
-            return {"total_budget": 0.0, "total_spent": 0.0, "total_remaining": 0.0}
+    total_budget = sum(b.get("amount", 0) for b in ledger.get("budgets", []))
 
-        cursor.execute("""
-            SELECT COALESCE(SUM(Amount), 0)
-            FROM Budget
-            WHERE Household_id = %s
-              AND Budget_month = %s
-              AND Budget_year = %s
-        """, (household_id, month, year))
-        total_budget = float(cursor.fetchone()[0])
+    category_query = [{"owner_type": "user", "owner_id": ObjectId(user_id)}]
+    if household_id:
+        category_query.append({"owner_type": "household", "owner_id": ObjectId(household_id)})
 
-        cursor.execute("""
-            SELECT COALESCE(SUM(t.Amount), 0)
-            FROM Transactions t
-            JOIN Category c ON t.Category_id = c.Category_id
-            WHERE t.Household_id = %s
-              AND MONTH(t.Transaction_date) = %s
-              AND YEAR(t.Transaction_date) = %s
-              AND c.Category_type = 'expenses'
-        """, (household_id, month, year))
-        total_spent = float(cursor.fetchone()[0])
+    expense_categories = {
+        c["_id"] for c in db.categories.find({"$or": category_query, "type": "expenses"})
+    }
 
-    cursor.close()
-    conn.close()
+    total_spent = sum(
+        t.get("amount", 0) for t in ledger.get("transactions", [])
+        if t.get("category_id") in expense_categories
+    )
 
     return {
         "total_budget": total_budget,
@@ -81,251 +57,130 @@ def get_detailed_budgets(user_id, household_id=None, month=None, year=None, scop
         month = today.month
         year = today.year
 
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
+    db = get_connection()
+    owner_type = 'user' if scope == 'individual' else 'household'
+    owner_id = ObjectId(user_id) if scope == 'individual' else ObjectId(household_id)
 
-    if scope == 'individual':
-        query = """
-            SELECT
-                names.category_name AS category_name,
-                'INDIVIDUAL' AS scope,
-                COALESCE(b.amount, 0) AS amount,
-                COALESCE(t.spent, 0) AS spent
-            FROM (
-                SELECT DISTINCT c.Category_name AS category_name
-                FROM Category c
-                LEFT JOIN Budget b
-                    ON b.Category_id = c.Category_id
-                    AND b.User_id = %s
-                    AND b.Budget_month = %s
-                    AND b.Budget_year = %s
-                LEFT JOIN Transactions tr
-                    ON tr.Category_id = c.Category_id
-                    AND tr.User_id = %s
-                    AND MONTH(tr.Transaction_date) = %s
-                    AND YEAR(tr.Transaction_date) = %s
-                WHERE c.User_id = %s
-                  AND c.Household_id IS NULL
-                  AND (b.Budget_id IS NOT NULL OR tr.Transaction_id IS NOT NULL)
-            ) names
-            LEFT JOIN (
-                SELECT
-                    c.Category_name,
-                    SUM(b.Amount) AS amount
-                FROM Budget b
-                JOIN Category c ON b.Category_id = c.Category_id
-                WHERE b.User_id = %s
-                  AND b.Budget_month = %s
-                  AND b.Budget_year = %s
-                GROUP BY c.Category_name
-            ) b ON b.Category_name = names.category_name
-            LEFT JOIN (
-                SELECT
-                    c.Category_name,
-                    SUM(t.Amount) AS spent
-                FROM Transactions t
-                JOIN Category c ON t.Category_id = c.Category_id
-                WHERE t.User_id = %s
-                  AND MONTH(t.Transaction_date) = %s
-                  AND YEAR(t.Transaction_date) = %s
-                GROUP BY c.Category_name
-            ) t ON t.Category_name = names.category_name
-            ORDER BY names.category_name
-        """
-        params = (
-            user_id, month, year,
-            user_id, month, year,
-            user_id,
-            user_id, month, year,
-            user_id, month, year
-        )
+    if scope == 'household' and not household_id:
+        return []
 
-    elif scope == 'household':
-        if not household_id:
-            cursor.close()
-            conn.close()
-            return []
+    category_query = [{"owner_type": "user", "owner_id": ObjectId(user_id)}]
+    if household_id:
+        category_query.append({"owner_type": "household", "owner_id": ObjectId(household_id)})
 
-        query = """
-            SELECT
-                names.category_name AS category_name,
-                'HOUSEHOLD' AS scope,
-                COALESCE(b.amount, 0) AS amount,
-                COALESCE(t.spent, 0) AS spent
-            FROM (
-                SELECT DISTINCT c.Category_name AS category_name
-                FROM Category c
-                LEFT JOIN Budget b
-                    ON b.Category_id = c.Category_id
-                    AND b.Household_id = %s
-                    AND b.Budget_month = %s
-                    AND b.Budget_year = %s
-                LEFT JOIN Transactions tr
-                    ON tr.Category_id = c.Category_id
-                    AND tr.Household_id = %s
-                    AND MONTH(tr.Transaction_date) = %s
-                    AND YEAR(tr.Transaction_date) = %s
-                WHERE c.Household_id = %s
-                  AND c.User_id IS NULL
-                  AND (b.Budget_id IS NOT NULL OR tr.Transaction_id IS NOT NULL)
-            ) names
-            LEFT JOIN (
-                SELECT
-                    c.Category_name,
-                    SUM(b.Amount) AS amount
-                FROM Budget b
-                JOIN Category c ON b.Category_id = c.Category_id
-                WHERE b.Household_id = %s
-                  AND b.Budget_month = %s
-                  AND b.Budget_year = %s
-                GROUP BY c.Category_name
-            ) b ON b.Category_name = names.category_name
-            LEFT JOIN (
-                SELECT
-                    c.Category_name,
-                    SUM(t.Amount) AS spent
-                FROM Transactions t
-                JOIN Category c ON t.Category_id = c.Category_id
-                WHERE t.Household_id = %s
-                  AND MONTH(t.Transaction_date) = %s
-                  AND YEAR(t.Transaction_date) = %s
-                GROUP BY c.Category_name
-            ) t ON t.Category_name = names.category_name
-            ORDER BY names.category_name
-        """
-        params = (
-            household_id, month, year,
-            household_id, month, year,
-            household_id,
-            household_id, month, year,
-            household_id, month, year
-        )
+    categories = {c["_id"]: c["name"] for c in db.categories.find({"$or": category_query})}
+    
+    ledger = db.ledgers.find_one({
+        "owner_type": owner_type,
+        "owner_id": owner_id,
+        "month": int(month),
+        "year": int(year)
+    }) or {"budgets": [], "transactions": []}
 
-    else:
-        cursor.close()
-        conn.close()
-        raise ValueError("scope musi być 'individual' albo 'household'")
+    budget_map = {}
+    for b in ledger.get("budgets", []):
+        budget_map[b["category_id"]] = budget_map.get(b["category_id"], 0) + b["amount"]
 
-    cursor.execute(query, params)
-    rows = cursor.fetchall()
-
-    cursor.close()
-    conn.close()
+    spent_map = {}
+    for t in ledger.get("transactions", []):
+        spent_map[t["category_id"]] = spent_map.get(t["category_id"], 0) + t["amount"]
 
     result = []
-    for row in rows:
-        amount = float(row["amount"] or 0)
-        spent = float(row["spent"] or 0)
+    for cat_id, cat_name in categories.items():
+        amount = float(budget_map.get(cat_id, 0))
+        spent = float(spent_map.get(cat_id, 0))
+        if amount > 0 or spent > 0:
+            result.append({
+                "category_name": cat_name,
+                "scope": scope.upper(),
+                "amount": amount,
+                "spent": spent,
+                "remaining": amount - spent
+            })
 
-        result.append({
-            "category_name": row["category_name"],
-            "scope": row["scope"],
-            "amount": amount,
-            "spent": spent,
-            "remaining": amount - spent
-        })
+    return sorted(result, key=lambda x: x["category_name"])
 
-    return result
-
-def get_transactions(user_id, start_date=None, end_date=None):
-    conn = get_connection()
-    cursor = conn.cursor()
-
+def get_transactions(user_id, household_id=None, start_date=None, end_date=None):
+    db = get_connection()
+    
+    owner_query = [{"owner_type": "user", "owner_id": ObjectId(user_id)}]
+    if household_id:
+        owner_query.append({"owner_type": "household", "owner_id": ObjectId(household_id)})
+        
+    match_stage = {}
     if start_date and end_date:
-        cursor.execute("""
-            SELECT
-                t.Transaction_id,
-                t.Transaction_date,
-                t.Amount,
-                t.Transaction_desc,
-                c.Category_name,
-                c.Category_type
-            FROM Transactions t
-            JOIN Category c ON t.Category_id = c.Category_id
-            WHERE t.User_id = %s
-              AND t.Transaction_date BETWEEN %s AND %s
-            ORDER BY t.Transaction_date DESC, t.Transaction_id DESC
-        """, (user_id, start_date, end_date))
-    else:
-        cursor.execute("""
-            SELECT
-                t.Transaction_id,
-                t.Transaction_date,
-                t.Amount,
-                t.Transaction_desc,
-                c.Category_name,
-                c.Category_type
-            FROM Transactions t
-            JOIN Category c ON t.Category_id = c.Category_id
-            WHERE t.User_id = %s
-            ORDER BY t.Transaction_date DESC, t.Transaction_id DESC
-        """, (user_id,))
+        match_stage["transactions.date"] = {
+            "$gte": datetime.strptime(start_date, '%Y-%m-%d'),
+            "$lte": datetime.strptime(end_date, '%Y-%m-%d')
+        }
 
-    rows = cursor.fetchall()
+    # MongoDB Aggregation Pipeline accurately recreates the flat cross-month relational search
+    pipeline = [
+        {"$match": {"$or": owner_query}},
+        {"$unwind": "$transactions"},
+    ]
+    
+    if match_stage:
+        pipeline.append({"$match": match_stage})
+        
+    pipeline.extend([
+        {
+            "$lookup": {
+                "from": "categories",
+                "localField": "transactions.category_id",
+                "foreignField": "_id",
+                "as": "category_info"
+            }
+        },
+        {"$unwind": "$category_info"},
+        {"$sort": {"transactions.date": -1}}
+    ])
 
-    cursor.close()
-    conn.close()
-
-    result = []
-    for row in rows:
-        result.append({
-            "transaction_id": row[0],
-            "transaction_date": str(row[1]),
-            "amount": float(row[2]),
-            "description": row[3],
-            "category": row[4],
-            "category_type": row[5]
-        })
-
-    return result
+    return [
+        {
+            "transaction_id": str(doc["transactions"]["transaction_id"]),
+            "transaction_date": doc["transactions"]["date"].strftime('%Y-%m-%d'),
+            "amount": float(doc["transactions"]["amount"]),
+            "description": doc["transactions"].get("description", ""),
+            "category": doc["category_info"]["name"],
+            "category_type": doc["category_info"]["type"],
+            "scope": "household" if doc["owner_type"] == "household" else "individual"
+        }
+        for doc in db.ledgers.aggregate(pipeline)
+    ]
 
 
 def get_expenditure_analysis(user_id, household_id, month, year, scope='individual'):
-    conn = get_connection()
-    cursor = conn.cursor()
+    db = get_connection()
+    owner_type = 'user' if scope == 'individual' else 'household'
+    owner_id = ObjectId(user_id) if scope == 'individual' else ObjectId(household_id)
 
-    if scope == 'individual':
-        query = """
-            SELECT
-                c.Category_name,
-                COALESCE(SUM(t.Amount), 0) AS spent
-            FROM Transactions t
-            JOIN Category c ON t.Category_id = c.Category_id
-            WHERE t.User_id = %s
-              AND MONTH(t.Transaction_date) = %s
-              AND YEAR(t.Transaction_date) = %s
-              AND c.Category_type = 'expenses'
-            GROUP BY c.Category_id, c.Category_name
-            ORDER BY spent DESC
-        """
-        params = (user_id, month, year)
-    else:
-        if not household_id:
-            return []
-        query = """
-            SELECT
-                c.Category_name,
-                COALESCE(SUM(t.Amount), 0) AS spent
-            FROM Transactions t
-            JOIN Category c ON t.Category_id = c.Category_id
-            WHERE t.Household_id = %s
-              AND MONTH(t.Transaction_date) = %s
-              AND YEAR(t.Transaction_date) = %s
-              AND c.Category_type = 'expenses'
-            GROUP BY c.Category_id, c.Category_name
-            ORDER BY spent DESC
-        """
-        params = (household_id, month, year)
+    if scope == 'household' and not household_id:
+        return []
 
-    cursor.execute(query, params)
-    rows = cursor.fetchall()
-    cursor.close()
-    conn.close()
+    ledger = db.ledgers.find_one({
+        "owner_type": owner_type,
+        "owner_id": owner_id,
+        "month": int(month),
+        "year": int(year)
+    }) or {}
 
-    result = []
-    for row in rows:
-        result.append({
-            "category_name": row[0],
-            "spent": float(row[1])
-        })
+    category_query = [{"owner_type": "user", "owner_id": ObjectId(user_id)}]
+    if household_id:
+        category_query.append({"owner_type": "household", "owner_id": ObjectId(household_id)})
+
+    expense_cats = {
+        c["_id"]: c["name"]
+        for c in db.categories.find({"$or": category_query, "type": "expenses"})
+    }
+
+    analysis = {}
+    for t in ledger.get("transactions", []):
+        cid = t.get("category_id")
+        if cid in expense_cats:
+            cname = expense_cats[cid]
+            analysis[cname] = analysis.get(cname, 0) + float(t["amount"])
+
+    result = [{"category_name": k, "spent": v} for k, v in analysis.items()]
+    result.sort(key=lambda x: x["spent"], reverse=True)
     return result

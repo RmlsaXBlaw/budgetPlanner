@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      # This maps your local code to the container, enabling hot-reloading
+      - .:/app
+    environment:
+      # Assuming Flask: this tells Werkzeug/Flask to watch for file changes
+      - FLASK_APP=app.py
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      # Connection string for PyMongo to reach the database container
+      - MONGO_URI=mongodb://db:27017/budgetPlanner
+    depends_on:
+      - db
+    # Command to start the application (adjust if your entry point is different)
+    command: flask run --host=0.0.0.0
+
+  db:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:

@@ -1,28 +1,19 @@
 from db import get_connection
+from bson.objectid import ObjectId
 
 def add_category(user_id, household_id, category_name, category_type, scope):
-    
-    conn = get_connection()
-    cursor = conn.cursor()
+    db = get_connection()
 
-    if scope == 'individual':
-        cursor.execute("""
-            INSERT INTO Category (Household_id, User_id, Category_name, Category_type)
-            VALUES (NULL, %s, %s, %s)
-        """, (user_id, category_name, category_type))
+    if scope == 'individual' or not household_id:
+        owner_type = 'user'
+        owner_id = ObjectId(user_id)
     else:
-        # If household scope is selected but user has no household, fallback to individual
-        if household_id is None:
-            cursor.execute("""
-                INSERT INTO Category (Household_id, User_id, Category_name, Category_type)
-                VALUES (NULL, %s, %s, %s)
-            """, (user_id, category_name, category_type))
-        else:
-            cursor.execute("""
-                INSERT INTO Category (Household_id, User_id, Category_name, Category_type)
-                VALUES (%s, NULL, %s, %s)
-            """, (household_id, category_name, category_type))
+        owner_type = 'household'
+        owner_id = ObjectId(household_id)
 
-    conn.commit()
-    cursor.close()
-    conn.close()
+    db.categories.insert_one({
+        "owner_type": owner_type,
+        "owner_id": owner_id,
+        "name": category_name,
+        "type": category_type
+    })

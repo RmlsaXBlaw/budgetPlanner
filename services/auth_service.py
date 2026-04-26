@@ -1,35 +1,16 @@
 import bcrypt
 from db import get_connection
+from bson.objectid import ObjectId
 
 
 def get_user_by_username(username):
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT User_id, Username, Pass
-        FROM Users
-        WHERE Username = %s
-    """, (username,))
-    user = cursor.fetchone()
-
-    cursor.close()
-    conn.close()
-
-    return user
+    db = get_connection()
+    return db.users.find_one({"username": username})
 
 
 def username_exists(username):
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT User_id FROM Users WHERE Username = %s", (username,))
-    existing_user = cursor.fetchone()
-
-    cursor.close()
-    conn.close()
-
-    return existing_user is not None
+    db = get_connection()
+    return db.users.find_one({"username": username}) is not None
 
 
 def create_user(username, password):
@@ -38,17 +19,13 @@ def create_user(username, password):
         bcrypt.gensalt()
     ).decode('utf-8')
 
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        INSERT INTO Users (Username, Pass)
-        VALUES (%s, %s)
-    """, (username, hashed_password))
-    conn.commit()
-
-    cursor.close()
-    conn.close()
+    db = get_connection()
+    db.users.insert_one({
+        "username": username,
+        "password": hashed_password,
+        "household_id": None,
+        "user_status": None
+    })
 
 
 def verify_user_login(username, password):
@@ -57,14 +34,10 @@ def verify_user_login(username, password):
     if not user:
         return None
 
-    user_id = user[0]
-    db_username = user[1]
-    stored_hash = user[2]
-
-    if bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8')):
+    if bcrypt.checkpw(password.encode('utf-8'), user["password"].encode('utf-8')):
         return {
-            "user_id": user_id,
-            "username": db_username,
+            "user_id": str(user["_id"]),
+            "username": user["username"],
             "role": "ADMIN"
         }
 

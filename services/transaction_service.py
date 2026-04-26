@@ -1,80 +1,62 @@
 from db import get_connection
-
+from bson.objectid import ObjectId
+from datetime import datetime
 
 def add_transaction(user_id, household_id, category_id, amount, transaction_date, scope, transaction_desc=None):
-    conn = get_connection()
-    cursor = conn.cursor()
+    db = get_connection()
+    owner_type = 'user' if scope == 'individual' else 'household'
+    owner_id = ObjectId(user_id) if scope == 'individual' else ObjectId(household_id)
 
-    if scope == 'individual':
-        cursor.execute("""
-            INSERT INTO Transactions
-            (Household_id, User_id, Category_id, Amount, Transaction_date, Transaction_desc)
-            VALUES (NULL, %s, %s, %s, %s, %s)
-        """, (user_id, category_id, amount, transaction_date, transaction_desc))
+    date_obj = datetime.strptime(transaction_date, '%Y-%m-%d')
+    
+    transaction = {
+        "transaction_id": ObjectId(),
+        "user_id": ObjectId(user_id),
+        "category_id": ObjectId(category_id),
+        "amount": float(amount),
+        "date": date_obj,
+        "description": transaction_desc
+    }
 
-    else:
-        cursor.execute("""
-            INSERT INTO Transactions
-            (Household_id, User_id, Category_id, Amount, Transaction_date, Transaction_desc)
-            VALUES (%s, NULL, %s, %s, %s, %s)
-        """, (household_id, category_id, amount, transaction_date, transaction_desc))
-
-    conn.commit()
-    cursor.close()
-    conn.close()
+    db.ledgers.update_one(
+        {
+            "owner_type": owner_type,
+            "owner_id": owner_id,
+            "month": date_obj.month,
+            "year": date_obj.year
+        },
+        {"$push": {"transactions": transaction}},
+        upsert=True
+    )
 
 
 def get_user_categories(user_id, household_id=None, scope=None, category_type=None):
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-
-    base_query = """
-        SELECT
-            Category_id AS category_id,
-            Category_name AS category_name,
-            Category_type AS category_type,
-            CASE
-                WHEN User_id IS NOT NULL THEN 'individual'
-                ELSE 'household'
-            END AS scope
-        FROM Category
-        WHERE
-    """
-
-    conditions = []
-    params = []
+    db = get_connection()
+    query = {}
 
     if scope == 'individual':
-        conditions.append("(User_id = %s AND Household_id IS NULL)")
-        params.append(user_id)
-
+        query["owner_type"] = "user"
+        query["owner_id"] = ObjectId(user_id)
     elif scope == 'household':
         if household_id is None:
-            cursor.close()
-            conn.close()
             return []
-        conditions.append("(Household_id = %s AND User_id IS NULL)")
-        params.append(household_id)
-
+        query["owner_type"] = "household"
+        query["owner_id"] = ObjectId(household_id)
     else:
-        conditions.append("""
-            (
-                (User_id = %s AND Household_id IS NULL)
-                OR
-                (Household_id = %s AND User_id IS NULL)
-            )
-        """)
-        params.extend([user_id, household_id])
+        or_conditions = [{"owner_type": "user", "owner_id": ObjectId(user_id)}]
+        if household_id:
+            or_conditions.append({"owner_type": "household", "owner_id": ObjectId(household_id)})
+        query["$or"] = or_conditions
 
     if category_type:
-        conditions.append("Category_type = %s")
-        params.append(category_type)
+        query["type"] = category_type
 
-    query = base_query + " AND ".join(conditions) + " ORDER BY Category_name"
-
-    cursor.execute(query, params)
-    categories = cursor.fetchall()
-
-    cursor.close()
-    conn.close()
-    return categories
+    return [
+        {
+            "category_id": str(c["_id"]),
+            "category_name": c["name"],
+            "category_type": c["type"],
+            "scope": "individual" if c["owner_type"] == "user" else "household"
+        }
+        for c in db.categories.find(query).sort("name", 1)
+    ]

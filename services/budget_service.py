@@ -41,15 +41,6 @@ def filter_budgets(user_id, household_id=None):
     pipeline = [
         {"$match": {"$or": owner_query}},
         {"$unwind": "$budgets"},
-        {
-            "$lookup": {
-                "from": "categories",
-                "localField": "budgets.category_id",
-                "foreignField": "_id",
-                "as": "category_info"
-            }
-        },
-        {"$unwind": "$category_info"},
         {"$sort": {"year": -1, "month": -1}}
     ]
     
@@ -57,8 +48,8 @@ def filter_budgets(user_id, household_id=None):
         {
             "budget_month": f"{doc['year']}-{doc['month']:02d}",
             "amount": float(doc["budgets"]["amount"]),
-            "category": doc["category_info"]["name"],
-            "category_type": doc["category_info"]["type"],
+            "category": doc["budgets"].get("category_name", "Unknown"),
+            "category_type": doc["budgets"].get("category_type", "Unknown"),
             "scope": "household" if doc["owner_type"] == "household" else "individual"
         }
         for doc in db.ledgers.aggregate(pipeline)

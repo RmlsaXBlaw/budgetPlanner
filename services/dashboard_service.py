@@ -124,15 +124,6 @@ def get_transactions(user_id, household_id=None, start_date=None, end_date=None)
         pipeline.append({"$match": match_stage})
         
     pipeline.extend([
-        {
-            "$lookup": {
-                "from": "categories",
-                "localField": "transactions.category_id",
-                "foreignField": "_id",
-                "as": "category_info"
-            }
-        },
-        {"$unwind": "$category_info"},
         {"$sort": {"transactions.date": -1}}
     ])
 
@@ -142,8 +133,8 @@ def get_transactions(user_id, household_id=None, start_date=None, end_date=None)
             "transaction_date": doc["transactions"]["date"].strftime('%Y-%m-%d'),
             "amount": float(doc["transactions"]["amount"]),
             "description": doc["transactions"].get("description", ""),
-            "category": doc["category_info"]["name"],
-            "category_type": doc["category_info"]["type"],
+            "category": doc["transactions"].get("category_name", "Unknown"),
+            "category_type": doc["transactions"].get("category_type", "Unknown"),
             "scope": "household" if doc["owner_type"] == "household" else "individual"
         }
         for doc in db.ledgers.aggregate(pipeline)

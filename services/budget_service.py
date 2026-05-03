@@ -1,5 +1,6 @@
 from db import get_connection
 from bson.objectid import ObjectId
+from services.category_service import get_categories_for_user
 
 def add_budget(user_id, household_id, category_id, amount, budget_month, budget_year, scope):
     """
@@ -13,8 +14,14 @@ def add_budget(user_id, household_id, category_id, amount, budget_month, budget_
     owner_type = 'user' if scope == 'individual' else 'household'
     owner_id = ObjectId(user_id) if scope == 'individual' else ObjectId(household_id)
 
+    # Resolve category details for denormalization
+    all_cats = get_categories_for_user(user_id, household_id)
+    cat = next((c for c in all_cats if str(c["_id"]) == str(category_id)), None)
+
     budget_entry = {
         "category_id": ObjectId(category_id),
+        "category_name": cat["name"] if cat else "Unknown",
+        "category_type": cat["type"] if cat else "expenses",
         "amount": float(amount)
     }
     

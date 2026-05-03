@@ -9,25 +9,30 @@ const userDocument = {
   username: "J.SMITH",
   password: "hashed_password",
   household_id: ObjectId("..."), // Nullable
-  user_status: "admin" // Nullable, 'admin' or 'member'
+  user_status: "admin", // Nullable, 'admin' or 'member'
+  categories: [
+    {
+      _id: ObjectId("..."),
+      name: "Personal Groceries",
+      type: "expenses"
+    }
+  ]
 };
 
 // 2. HOUSEHOLDS Collection
 const householdDocument = {
   _id: ObjectId("..."),
-  name: "Smith Family"
+  name: "Smith Family",
+  categories: [
+    {
+      _id: ObjectId("..."),
+      name: "Rent",
+      type: "expenses"
+    }
+  ]
 };
 
-// 3. CATEGORIES Collection
-const categoryDocument = {
-  _id: ObjectId("..."),
-  owner_type: "user", // or 'household'
-  owner_id: ObjectId("..."), 
-  name: "Groceries",
-  type: "expenses" // or 'income'
-};
-
-// 4. LEDGERS Collection (The core aggregate replacement for Budget & Transactions)
+// 3. LEDGERS Collection (The core aggregate replacement for Budget & Transactions)
 // Implements the "Bucket Pattern" to heavily optimize dashboard rendering.
 const ledgerDocument = {
   _id: ObjectId("..."),

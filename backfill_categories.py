@@ -7,8 +7,15 @@ def backfill_embedded_categories():
     db = get_connection()
     
     # Cache categories locally to avoid hitting the database for every single transaction
-    print("Fetching categories...")
-    categories = {c["_id"]: c for c in db.categories.find()}
+    print("Fetching embedded categories from users and households...")
+    categories = {}
+    for user in db.users.find({"categories": {"$exists": True}}):
+        for c in user["categories"]:
+            categories[c["_id"]] = c
+            
+    for hh in db.households.find({"categories": {"$exists": True}}):
+        for c in hh["categories"]:
+            categories[c["_id"]] = c
     
     print("Processing ledgers...")
     ledgers = db.ledgers.find()

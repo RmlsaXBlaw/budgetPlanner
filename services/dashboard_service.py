@@ -1,6 +1,7 @@
 from datetime import datetime
 from bson.objectid import ObjectId
 from db import get_connection
+from services.category_service import get_categories_for_user
 
 def get_executive_summary(user_id, household_id=None, month=None, year=None, scope='individual'):
     """
@@ -27,13 +28,8 @@ def get_executive_summary(user_id, household_id=None, month=None, year=None, sco
 
     total_budget = sum(b.get("amount", 0) for b in ledger.get("budgets", []))
 
-    category_query = [{"owner_type": "user", "owner_id": ObjectId(user_id)}]
-    if household_id:
-        category_query.append({"owner_type": "household", "owner_id": ObjectId(household_id)})
-
-    expense_categories = {
-        c["_id"] for c in db.categories.find({"$or": category_query, "type": "expenses"})
-    }
+    all_categories = get_categories_for_user(user_id, household_id)
+    expense_categories = {c["_id"] for c in all_categories if c.get("type") == "expenses"}
 
     total_spent = sum(
         t.get("amount", 0) for t in ledger.get("transactions", [])
@@ -64,11 +60,8 @@ def get_detailed_budgets(user_id, household_id=None, month=None, year=None, scop
     if scope == 'household' and not household_id:
         return []
 
-    category_query = [{"owner_type": "user", "owner_id": ObjectId(user_id)}]
-    if household_id:
-        category_query.append({"owner_type": "household", "owner_id": ObjectId(household_id)})
-
-    categories = {c["_id"]: c["name"] for c in db.categories.find({"$or": category_query})}
+    all_categories = get_categories_for_user(user_id, household_id)
+    categories = {c["_id"]: c["name"] for c in all_categories}
     
     ledger = db.ledgers.find_one({
         "owner_type": owner_type,
@@ -156,14 +149,8 @@ def get_expenditure_analysis(user_id, household_id, month, year, scope='individu
         "year": int(year)
     }) or {}
 
-    category_query = [{"owner_type": "user", "owner_id": ObjectId(user_id)}]
-    if household_id:
-        category_query.append({"owner_type": "household", "owner_id": ObjectId(household_id)})
-
-    expense_cats = {
-        c["_id"]: c["name"]
-        for c in db.categories.find({"$or": category_query, "type": "expenses"})
-    }
+    all_categories = get_categories_for_user(user_id, household_id)
+    expense_cats = {c["_id"]: c["name"] for c in all_categories if c.get("type") == "expenses"}
 
     analysis = {}
     for t in ledger.get("transactions", []):

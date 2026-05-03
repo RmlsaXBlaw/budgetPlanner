@@ -1,6 +1,7 @@
 from db import get_connection
 from bson.objectid import ObjectId
 from datetime import datetime
+from services.category_service import get_categories_for_user
 
 def add_transaction(user_id, household_id, category_id, amount, transaction_date, scope, transaction_desc=None):
     db = get_connection()
@@ -9,10 +10,16 @@ def add_transaction(user_id, household_id, category_id, amount, transaction_date
 
     date_obj = datetime.strptime(transaction_date, '%Y-%m-%d')
     
+    # Resolve category details for denormalization
+    all_cats = get_categories_for_user(user_id, household_id)
+    cat = next((c for c in all_cats if str(c["_id"]) == str(category_id)), None)
+    
     transaction = {
         "transaction_id": ObjectId(),
         "user_id": ObjectId(user_id),
         "category_id": ObjectId(category_id),
+        "category_name": cat["name"] if cat else "Unknown",
+        "category_type": cat["type"] if cat else "expenses",
         "amount": float(amount),
         "date": date_obj,
         "description": transaction_desc
@@ -32,31 +39,32 @@ def add_transaction(user_id, household_id, category_id, amount, transaction_date
 
 def get_user_categories(user_id, household_id=None, scope=None, category_type=None):
     db = get_connection()
-    query = {}
+    categories = []
 
-    if scope == 'individual':
-        query["owner_type"] = "user"
-        query["owner_id"] = ObjectId(user_id)
-    elif scope == 'household':
-        if household_id is None:
-            return []
-        query["owner_type"] = "household"
-        query["owner_id"] = ObjectId(household_id)
-    else:
-        or_conditions = [{"owner_type": "user", "owner_id": ObjectId(user_id)}]
-        if household_id:
-            or_conditions.append({"owner_type": "household", "owner_id": ObjectId(household_id)})
-        query["$or"] = or_conditions
+    if scope in [None, 'individual']:
+        user = db.users.find_one({"_id": ObjectId(user_id)})
+        if user and "categories" in user:
+            for c in user["categories"]:
+                if category_type and c.get("type") != category_type:
+                    continue
+                categories.append({
+                    "category_id": str(c["_id"]),
+                    "category_name": c["name"],
+                    "category_type": c.get("type"),
+                    "scope": "individual"
+                })
 
-    if category_type:
-        query["type"] = category_type
+    if scope in [None, 'household'] and household_id:
+        household = db.households.find_one({"_id": ObjectId(household_id)})
+        if household and "categories" in household:
+            for c in household["categories"]:
+                if category_type and c.get("type") != category_type:
+                    continue
+                categories.append({
+                    "category_id": str(c["_id"]),
+                    "category_name": c["name"],
+                    "category_type": c.get("type"),
+                    "scope": "household"
+                })
 
-    return [
-        {
-            "category_id": str(c["_id"]),
-            "category_name": c["name"],
-            "category_type": c["type"],
-            "scope": "individual" if c["owner_type"] == "user" else "household"
-        }
-        for c in db.categories.find(query).sort("name", 1)
-    ]
+    return sorted(categories, key=lambda x: x["category_name"])
